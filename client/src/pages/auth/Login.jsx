@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import SignupPage from './SignUp';
 import { useNavigate } from 'react-router-dom';
+import useAuthStore from '../../store/useAuthStore';
+import { toast } from 'react-toastify';
+import Header from '../layout/header'
 
 // Real API function for login
   const loginUser = async ({ email, password }) => {
@@ -24,7 +27,7 @@ import { useNavigate } from 'react-router-dom';
   };
 
 // Custom hook to mimic React Query's useMutation behavior
-function useMutation({ mutationFn, onSuccess }) {
+function useMutation({ mutationFn, onSuccess, onError }) {
   const [isPending, setIsPending] = useState(false);
   const [isError, setIsError] = useState(false);
   const [error, setError] = useState(null);
@@ -44,44 +47,14 @@ function useMutation({ mutationFn, onSuccess }) {
       setIsPending(false);
       setIsError(true);
       setError(err);
+      if (onError) onError(err);
     }
   };
 
   return { mutate, isPending, isError, error };
 }
 
-// Navigation Header Component
-function Header({ currentPage, onNavigate }) {
-  return (
-    <header className="bg-teal-700 text-white shadow-md">
-      <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-pink-500 rounded-lg flex items-center justify-center">
-            <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
-            </svg>
-          </div>
-          <span className="text-xl font-bold">Pillgenious</span>
-        </div>
-        <nav className="hidden md:flex space-x-6">
-          <button className="hover:text-teal-200 transition-colors">Home</button>
-          <button className="hover:text-teal-200 transition-colors">Products</button>
-          <button className="hover:text-teal-200 transition-colors">Brands</button>
-          <button className="hover:text-teal-200 transition-colors">Features</button>
-          <button className="hover:text-teal-200 transition-colors">Alerts</button>
-          <button className="hover:text-teal-200 transition-colors">Blogs</button>
-          <button className="hover:text-teal-200 transition-colors">Consultation</button>
-          <button 
-            onClick={() => onNavigate('login')}
-            className={currentPage === 'login' ? 'text-teal-200 font-semibold' : 'hover:text-teal-200 transition-colors'}
-          >
-            Login
-          </button>
-        </nav>
-      </div>
-    </header>
-  );
-}
+// Header is now a shared component at ../layout/header
 
 // Login Page Component
 export function LoginPage({ onNavigate }) {
@@ -95,15 +68,21 @@ export function LoginPage({ onNavigate }) {
   const loginMutation = useMutation({
     mutationFn: loginUser,
     onSuccess: (data) => {
-      // store token and navigate to protected dashboard
+      // persist auth to zustand store (which itself persists to localStorage)
       try {
-        localStorage.setItem('authToken', data.token);
+        useAuthStore.getState().setAuth({ token: data.token, user: data.user });
       } catch (e) {
-        console.warn('Unable to access localStorage', e);
+        console.warn('Unable to update auth store', e);
       }
-      alert(`Login successful! Welcome ${data.user.name}`);
+      // navigate to dashboard first, then show toast so it displays on the dashboard page
       setFormData({ email: '', password: '' });
       navigate('/dashboard');
+      // small timeout ensures navigation happens before toast; keeps toast visible on dashboard
+      setTimeout(() => toast.success(`Login successful! Welcome ${data.user.name}`), 0);
+    }
+    ,
+    onError: (err) => {
+      toast.error(err?.message || 'Login failed')
     }
   });
 
@@ -145,7 +124,7 @@ export function LoginPage({ onNavigate }) {
 
             {loginMutation.isError && (
               <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm">
-                {loginMutation.error.message}
+                {loginMutation.error?.message || 'Login failed'}
               </div>
             )}
 
@@ -194,8 +173,4 @@ export function LoginPage({ onNavigate }) {
   );
 }
 
-// Signup Page Component
-// SignupPage component moved to ./SignUp.jsx
-
-// AuthApp moved to its own file (AuthApp.jsx)
 export default null

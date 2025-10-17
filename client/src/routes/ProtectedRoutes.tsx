@@ -1,5 +1,6 @@
 import React from 'react';
 import { Outlet, Navigate } from 'react-router-dom';
+	import useAuthStore from '../store/useAuthStore';
 
 /**
  * Simple protected route wrapper.
@@ -7,8 +8,9 @@ import { Outlet, Navigate } from 'react-router-dom';
  * Otherwise redirects to the login page at '/'.
  */
 export default function ProtectedRoutes() {
-	// You can swap this for a more robust auth check (context, redux, etc.)
-	const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
+	// read token from zustand store (persisted to localStorage)
+	// use getState() to avoid implicit-any selector typing in this TS file
+	const token = useAuthStore.getState().token;
 
 	if (!token) {
 		return <Navigate to="/" replace />;
