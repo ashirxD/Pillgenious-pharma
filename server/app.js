@@ -23,13 +23,7 @@ connectDB();
 const routes = require('./routes');
 app.use('/api', routes);
 
-// Basic route
-app.get('/api/ping', (req, res) => {
-  res.json({ message: 'pong' });
-});
 
-// Health endpoint
-app.get('/health', (req, res) => res.send('OK'));
 
 // 404 handler
 app.use((req, res, next) => {
