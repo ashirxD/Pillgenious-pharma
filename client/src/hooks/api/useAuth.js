@@ -18,7 +18,13 @@ export const useLogin = () => {
       // Save token and user to auth store
       setAuth({ token: data.token, user: data.user });
       toast.success('Login successful!');
-      navigate('/dashboard');
+      
+      // Redirect based on user role
+      if (data.user.role === 'admin') {
+        navigate('/admin/dashboard');
+      } else {
+        navigate('/dashboard');
+      }
     },
   });
 };

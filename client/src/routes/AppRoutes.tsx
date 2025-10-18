@@ -9,6 +9,7 @@ const AuthApp = lazy(() => import('../pages/auth/AuthApp'));
 const AdminLogin = lazy(() => import('../pages/auth/AdminLogin'));
 // A simple placeholder for protected area (Dashboard)
 const Dashboard = lazy(() => import('../pages/Dashboard'));
+const AdminDashboard = lazy(() => import('../pages/admin/Dashboard'));
 
 // Minimal Error Boundary
 class ErrorBoundary extends React.Component {
@@ -50,13 +51,14 @@ export default function AppRoutes() {
 							  {/* Admin/Pharmacy login page */}
 							  <Route path="/admin-login" element={<AdminLogin />} />
 
-							{/* Protected routes group */}
-							<Route element={<ProtectedRoutes />}>
-								<Route path="/dashboard" element={<Dashboard />} />
-							</Route>
+						{/* Protected routes group */}
+						<Route element={<ProtectedRoutes />}>
+							<Route path="/dashboard" element={<Dashboard />} />
+							<Route path="/admin/dashboard" element={<AdminDashboard />} />
+						</Route>
 
-							{/* Catch-all -> if user hits unknown route, redirect to root */}
-							<Route path="*" element={<Navigate to="/" replace />} />
+						{/* Catch-all -> if user hits unknown route, redirect to root */}
+						<Route path="*" element={<Navigate to="/" replace />} />
 						</Routes>
 			</Suspense>
 		</ErrorBoundary>
