@@ -1,39 +1,6 @@
 import axios from 'axios';
 import useAuthStore from '../store/useAuthStore';
 
-/**
- * Axios Instance Configuration
- * 
- * Usage Examples:
- * 
- * GET Request:
- *   const response = await axiosInstance.get('/drugs');
- *   const data = response.data;
- * 
- * POST Request:
- *   const response = await axiosInstance.post('/orders', { 
- *     drugId: 1, 
- *     quantity: 2 
- *   });
- * 
- * PUT Request:
- *   const response = await axiosInstance.put('/users/profile', { 
- *     name: 'John Doe' 
- *   });
- * 
- * DELETE Request:
- *   const response = await axiosInstance.delete('/orders/123');
- * 
- * With Query Parameters:
- *   const response = await axiosInstance.get('/drugs', {
- *     params: { category: 'antibiotics', inStock: true }
- *   });
- * 
- * Custom Headers:
- *   const response = await axiosInstance.post('/upload', formData, {
- *     headers: { 'Content-Type': 'multipart/form-data' }
- *   });
- */
 
 // Create axios instance with base configuration
 const axiosInstance = axios.create({
