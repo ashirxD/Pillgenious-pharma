@@ -1,14 +1,37 @@
 import React, { useState } from 'react';
 import Sidebar from '../layout/sidebar';
+import Header from '../layout/header';
 import Consultant from '../Consultant';
+import { useDrugs } from '../../hooks/api/useDrugs';
+import { useAddToCart } from '../../hooks/api/useOrders';
 
 export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentTab, setCurrentTab] = useState('dashboard');
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
 
-  // Sample medicine data
-  const medicines = [
+  // Fetch medicines using React Query
+  const { 
+    data: medicinesData, 
+    isLoading: loading, 
+    isError, 
+    error 
+  } = useDrugs();
+
+  // Add to cart mutation
+  const addToCartMutation = useAddToCart();
+
+  // Handle add to cart
+  const handleAddToCart = (medicine) => {
+    addToCartMutation.mutate({
+      drugId: medicine.id,
+      quantity: 1,
+      price: medicine.price,
+    });
+  };
+
+  // Sample medicine data (fallback)
+  const sampleMedicines = [
     {
       id: 1,
       name: 'Paracetamol 500mg',
@@ -65,6 +88,9 @@ export default function Dashboard() {
     }
   ];
 
+  // Use API data if available, otherwise use sample data
+  const medicines = medicinesData && medicinesData.length > 0 ? medicinesData : sampleMedicines;
+
   const quickActions = [
     { icon: '💊', title: 'My Prescriptions', count: '3 Active', color: 'bg-blue-500' },
     { icon: '⏰', title: 'Reminders', count: '2 Today', color: 'bg-purple-500' },
@@ -78,38 +104,31 @@ export default function Dashboard() {
     'Regular exercise improves medication effectiveness'
   ];
 
+  // Handle profile navigation from header
+  const handleProfileNavigation = (page) => {
+    if (page === 'profile') {
+      setCurrentTab('profile');
+    }
+  };
+
   // Render different content based on current tab
   const renderContent = () => {
     switch(currentTab) {
       case 'consultation':
         return <Consultant />;
+      case 'profile':
+        return (
+          <div className="px-4 md:px-6 lg:px-8 py-6 md:py-8">
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">Profile Settings</h2>
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <p className="text-gray-600">Profile page content coming soon...</p>
+            </div>
+          </div>
+        );
       case 'dashboard':
       default:
         return (
           <>
-            {/* Header Section */}
-            <div className="bg-gradient-to-r from-teal-700 to-teal-600 text-white py-6 md:py-8 px-4 md:px-6 shadow-xl sticky top-0 z-40">
-          <div className="mx-auto">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-1 md:mb-2">
-                  Welcome Back to Your Health Dashboard
-                </h1>
-                <p className="text-teal-50 text-sm md:text-base">
-                  Manage your medications and health records all in one place
-                </p>
-              </div>
-              {/* User Quick Info */}
-              <div className="hidden lg:flex items-center space-x-4">
-                <div className="text-right">
-                  <p className="text-sm text-teal-100">Current Date</p>
-                  <p className="font-semibold">{new Date().toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <div className="px-4 md:px-6 lg:px-8 py-6 md:py-8">
         {/* Quick Actions Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
@@ -186,12 +205,34 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Medicine Cards Grid */}
-          <div className={`grid gap-4 md:gap-6 ${
-            isSidebarExpanded 
-              ? 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3' 
-              : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
-          }`}>
+          {/* Error Message */}
+          {isError && (
+            <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-lg">
+              <div className="flex items-center">
+                <span className="text-2xl mr-3">⚠️</span>
+                <div>
+                  <p className="font-semibold">Error loading medicines</p>
+                  <p className="text-sm">{error?.response?.data?.message || error?.message || 'Failed to load medicines. Showing sample data.'}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Loading State */}
+          {loading ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="text-center">
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-teal-700 mb-4"></div>
+                <p className="text-gray-600 text-lg">Loading medicines...</p>
+              </div>
+            </div>
+          ) : (
+            /* Medicine Cards Grid */
+            <div className={`grid gap-4 md:gap-6 ${
+              isSidebarExpanded 
+                ? 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3' 
+                : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
+            }`}>
             {medicines.map((medicine) => (
               <div
                 key={medicine.id}
@@ -233,14 +274,19 @@ export default function Dashboard() {
                       <p className="text-2xl md:text-3xl font-bold text-teal-700">{medicine.price}</p>
                       <p className="text-xs text-gray-500">per pack</p>
                     </div>
-                    <button className="px-4 md:px-6 py-2 md:py-2.5 bg-teal-700 text-white rounded-lg hover:bg-teal-800 active:bg-teal-900 transition-all font-semibold shadow-md hover:shadow-lg text-sm md:text-base">
-                      Add to Cart
+                    <button 
+                      onClick={() => handleAddToCart(medicine)}
+                      disabled={addToCartMutation.isPending}
+                      className="px-4 md:px-6 py-2 md:py-2.5 bg-teal-700 text-white rounded-lg hover:bg-teal-800 active:bg-teal-900 transition-all font-semibold shadow-md hover:shadow-lg text-sm md:text-base disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {addToCartMutation.isPending ? 'Adding...' : 'Add to Cart'}
                     </button>
                   </div>
                 </div>
               </div>
             ))}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Additional Info Section */}
@@ -315,6 +361,9 @@ export default function Dashboard() {
         className={`transition-all duration-300 ${isSidebarExpanded ? 'ml-64' : 'ml-20'}`}
         style={{ minHeight: '100vh' }}
       >
+        {/* Header */}
+        <Header onNavigate={handleProfileNavigation} />
+        
         {renderContent()}
       </div>
     </div>

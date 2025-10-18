@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useLogout } from '../../hooks/api/useAuth';
 
 export default function Sidebar({ currentTab, onTabChange, onExpandChange }) {
   const [isExpanded, setIsExpanded] = useState(true);
+  const logoutMutation = useLogout();
 
   // Notify parent component when sidebar expands/collapses
   useEffect(() => {
@@ -9,6 +11,10 @@ export default function Sidebar({ currentTab, onTabChange, onExpandChange }) {
       onExpandChange(isExpanded);
     }
   }, [isExpanded, onExpandChange]);
+
+  const handleLogout = () => {
+    logoutMutation.mutate();
+  };
 
   const menuItems = [
     {
@@ -98,81 +104,48 @@ export default function Sidebar({ currentTab, onTabChange, onExpandChange }) {
     }
   ];
 
-  const settingsItems = [
-    {
-      id: 'profile',
-      name: 'Profile',
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-        </svg>
-      )
-    },
-    {
-      id: 'settings',
-      name: 'Settings',
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-        </svg>
-      )
-    },
-    {
-      id: 'logout',
-      name: 'Logout',
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-        </svg>
-      )
-    }
-  ];
 
   return (
     <div
       className={`${
         isExpanded ? 'w-64' : 'w-20'
-      } bg-white shadow-xl h-screen fixed left-0 top-0 transition-all duration-300 flex flex-col border-r-2 border-gray-100 z-50`}
+      } bg-white h-screen fixed left-0 top-0 transition-all duration-300 flex flex-col border-r border-gray-200 z-50`}
     >
       {/* Logo Section */}
-      <div className="p-4 border-b-2 border-teal-800 bg-gradient-to-r from-teal-700 to-teal-600 shadow-md">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg">
-              <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <g fill="none" fillRule="evenodd">
-                  <circle cx="12" cy="12" r="10" fill="#ec4899" opacity="0.14" />
-                  <path d="M7.05 9.05a4 4 0 015.657 0l2.243 2.243a4 4 0 010 5.657 4 4 0 01-5.657 0L7.05 14.707a4 4 0 010-5.657z" fill="#fff" />
-                  <rect x="6.5" y="6.5" width="11" height="5" rx="2.5" transform="rotate(45 12 9)" fill="#fff" opacity="0.9" />
-                </g>
-              </svg>
-            </div>
-            {isExpanded && (
-              <span className="text-xl font-bold text-white whitespace-nowrap">Pillgenious</span>
-            )}
+      <div className="px-6 py-5 flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <div className="w-9 h-9 bg-teal-600 rounded-lg flex items-center justify-center flex-shrink-0">
+            <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <g fill="none" fillRule="evenodd">
+                <path d="M7.05 9.05a4 4 0 015.657 0l2.243 2.243a4 4 0 010 5.657 4 4 0 01-5.657 0L7.05 14.707a4 4 0 010-5.657z" fill="#fff" />
+                <rect x="6.5" y="6.5" width="11" height="5" rx="2.5" transform="rotate(45 12 9)" fill="#fff" opacity="0.9" />
+              </g>
+            </svg>
           </div>
           {isExpanded && (
-            <button
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="text-white hover:bg-white/20 p-2 rounded-lg transition-all shadow-sm"
-              title="Collapse sidebar"
-            >
-              <svg
-                className="w-5 h-5 transition-transform"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-              </svg>
-            </button>
+            <span className="text-lg font-bold text-gray-800 whitespace-nowrap">Pillgenious</span>
           )}
         </div>
+        {isExpanded && (
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 transition-all"
+            title="Collapse sidebar"
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+            </svg>
+          </button>
+        )}
         {!isExpanded && (
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="mt-3 w-full text-white hover:bg-white/20 p-2 rounded-lg transition-all flex items-center justify-center"
+            className="mt-3 w-full text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 transition-all flex items-center justify-center"
             title="Expand sidebar"
           >
             <svg
@@ -188,38 +161,33 @@ export default function Sidebar({ currentTab, onTabChange, onExpandChange }) {
       </div>
 
       {/* Main Menu */}
-      <div className="flex-1 overflow-y-auto py-4">
+      <div className="flex-1 overflow-y-auto py-2">
         <div className="px-3">
-          {isExpanded && (
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 px-3">
-              Main Menu
-            </p>
-          )}
-          <nav className="space-y-1">
+          <nav className="space-y-0.5">
             {menuItems.map((item) => (
               <button
                 key={item.id}
                 onClick={() => onTabChange && onTabChange(item.id)}
-                className={`w-full flex items-center justify-between px-3 py-3 rounded-lg transition-all group ${
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all group ${
                   currentTab === item.id
-                    ? 'bg-teal-700 text-white shadow-md'
-                    : 'text-gray-700 hover:bg-teal-50 hover:text-teal-700'
+                    ? 'bg-teal-50 text-teal-700'
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                 }`}
               >
                 <div className="flex items-center space-x-3">
-                  <div className={`flex-shrink-0 ${currentTab === item.id ? 'text-white' : 'text-gray-500 group-hover:text-teal-700'}`}>
+                  <div className={`flex-shrink-0 ${currentTab === item.id ? 'text-teal-600' : 'text-gray-400 group-hover:text-gray-600'}`}>
                     {item.icon}
                   </div>
                   {isExpanded && (
-                    <span className="font-medium whitespace-nowrap">{item.name}</span>
+                    <span className="text-sm font-medium whitespace-nowrap">{item.name}</span>
                   )}
                 </div>
                 {isExpanded && item.badge && (
                   <span
-                    className={`px-2 py-1 text-xs font-bold rounded-full ${
+                    className={`px-2 py-0.5 text-xs font-semibold rounded-full ${
                       currentTab === item.id
-                        ? 'bg-white text-teal-700'
-                        : 'bg-teal-100 text-teal-700'
+                        ? 'bg-teal-600 text-white'
+                        : 'bg-gray-100 text-gray-600'
                     }`}
                   >
                     {item.badge}
@@ -229,50 +197,26 @@ export default function Sidebar({ currentTab, onTabChange, onExpandChange }) {
             ))}
           </nav>
         </div>
-
-        {/* Settings Section */}
-        <div className="px-3 mt-6">
-          {isExpanded && (
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 px-3">
-              Account
-            </p>
-          )}
-          <nav className="space-y-1">
-            {settingsItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => onTabChange && onTabChange(item.id)}
-                className={`w-full flex items-center space-x-3 px-3 py-3 rounded-lg transition-all group ${
-                  currentTab === item.id
-                    ? 'bg-teal-700 text-white shadow-md'
-                    : 'text-gray-700 hover:bg-teal-50 hover:text-teal-700'
-                }`}
-              >
-                <div className={`flex-shrink-0 ${currentTab === item.id ? 'text-white' : 'text-gray-500 group-hover:text-teal-700'}`}>
-                  {item.icon}
-                </div>
-                {isExpanded && (
-                  <span className="font-medium whitespace-nowrap">{item.name}</span>
-                )}
-              </button>
-            ))}
-          </nav>
-        </div>
       </div>
 
-      {/* User Profile Section */}
-      <div className="p-4 border-t-2 border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-teal-700 to-teal-600 rounded-full flex items-center justify-center flex-shrink-0 text-white font-bold shadow-md">
-            JD
+      {/* Logout Button */}
+      <div className="p-3">
+        <button
+          onClick={handleLogout}
+          disabled={logoutMutation.isPending}
+          className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-all group text-gray-600 hover:bg-red-50 hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <div className="flex-shrink-0 text-gray-400 group-hover:text-red-600">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
           </div>
           {isExpanded && (
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-gray-800 truncate">John Doe</p>
-              <p className="text-xs text-gray-600 truncate">john.doe@email.com</p>
-            </div>
+            <span className="text-sm font-medium whitespace-nowrap">
+              {logoutMutation.isPending ? 'Logging out...' : 'Logout'}
+            </span>
           )}
-        </div>
+        </button>
       </div>
     </div>
   );

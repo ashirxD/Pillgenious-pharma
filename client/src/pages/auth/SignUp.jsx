@@ -1,61 +1,8 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import useAuthStore from '../../store/useAuthStore';
 import { toast } from 'react-toastify';
-import Header from '../layout/header'
+import { useRegister } from '../../hooks/api/useAuth';
 
-// Real API function for register
-const registerUser = async ({ email, password, name }) => {
-  const res = await fetch('/api/auth/register', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, email, password }),
-  });
-
-  const text = await res.text();
-  let data = {};
-  try {
-    data = text ? JSON.parse(text) : {};
-  } catch (err) {
-    console.error('Failed to parse JSON from /api/auth/register:', text);
-    throw new Error('Invalid JSON response from server');
-  }
-
-  if (!res.ok) throw new Error(data.error || res.statusText || 'Registration failed');
-  return data; // { user, token }
-};
-
-// Custom hook to mimic React Query's useMutation behavior (same as Login.jsx)
-function useMutation({ mutationFn, onSuccess, onError }) {
-  const [isPending, setIsPending] = useState(false);
-  const [isError, setIsError] = useState(false);
-  const [error, setError] = useState(null);
-
-  const mutate = async (variables) => {
-    setIsPending(true);
-    setIsError(false);
-    setError(null);
-    
-    try {
-      const data = await mutationFn(variables);
-      setIsPending(false);
-      if (onSuccess) {
-        onSuccess(data);
-      }
-    } catch (err) {
-      setIsPending(false);
-      setIsError(true);
-      setError(err);
-      if (onError) onError(err);
-    }
-  };
-
-  return { mutate, isPending, isError, error };
-}
-
-// Header is now a shared component at ../layout/header
-
-// Signup Page Component (moved)
+// Signup Page Component
 export default function SignupPage({ onNavigate }) {
   const [formData, setFormData] = useState({
     name: '',
@@ -64,24 +11,8 @@ export default function SignupPage({ onNavigate }) {
     confirmPassword: ''
   });
 
-  const navigate = useNavigate();
-
-  const registerMutation = useMutation({
-    mutationFn: registerUser,
-    onSuccess: (data) => {
-      try {
-        useAuthStore.getState().setAuth({ token: data.token, user: data.user });
-      } catch (e) {
-        console.warn('Unable to update auth store', e);
-      }
-      setFormData({ name: '', email: '', password: '', confirmPassword: '' });
-      navigate('/dashboard');
-      setTimeout(() => toast.success(`Registration successful! Welcome ${data.user.name}`), 0);
-    },
-    onError: (err) => {
-      toast.error(err?.message || 'Registration failed')
-    }
-  });
+  // Use React Query register mutation
+  const registerMutation = useRegister();
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -89,14 +20,16 @@ export default function SignupPage({ onNavigate }) {
       toast.error('Passwords do not match!');
       return;
     }
-    registerMutation.mutate(formData);
+    registerMutation.mutate(formData, {
+      onSuccess: () => {
+        setFormData({ name: '', email: '', password: '', confirmPassword: '' });
+      }
+    });
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header currentPage="signup" onNavigate={onNavigate} />
-      
-      <div className="max-w-md mx-auto px-4 py-16">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="max-w-md w-full mx-auto px-4 py-16">
         <div className="bg-white rounded-lg shadow-md p-8">
           <h2 className="text-2xl font-bold text-gray-800 mb-6">Create Account</h2>
           
