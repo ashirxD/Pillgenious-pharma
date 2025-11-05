@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import axiosInstance from '../../utils/axios';
 
 export default function Consultant() {
   const [messages, setMessages] = useState([
@@ -39,41 +40,39 @@ export default function Consultant() {
       timestamp: new Date()
     };
 
-    setMessages([...messages, userMessage]);
+    const userMessageContent = inputMessage.trim();
+    setMessages(prev => [...prev, userMessage]);
     setInputMessage('');
     setIsTyping(true);
 
-    // Simulate AI response
-    setTimeout(() => {
+    try {
+      // Call the chatbot API
+      const response = await axiosInstance.post('/chatbot/message', {
+        message: userMessageContent
+      });
+
       const aiResponse = {
         id: messages.length + 2,
         role: 'assistant',
-        content: generateResponse(inputMessage),
+        content: response.data.response,
         timestamp: new Date()
       };
+      
       setMessages(prev => [...prev, aiResponse]);
+    } catch (error) {
+      console.error('Error calling chatbot API:', error);
+      
+      // Show error message to user
+      const errorResponse = {
+        id: messages.length + 2,
+        role: 'assistant',
+        content: error.response?.data?.error || 'Sorry, I encountered an error while processing your request. Please try again later.',
+        timestamp: new Date()
+      };
+      
+      setMessages(prev => [...prev, errorResponse]);
+    } finally {
       setIsTyping(false);
-    }, 1500);
-  };
-
-  const generateResponse = (question) => {
-    // Simple response generator - in production, this would call an AI API
-    const responses = {
-      paracetamol: "Paracetamol (acetaminophen) is generally safe when taken as directed. Common side effects are rare but may include nausea or rash. The usual adult dose is 500-1000mg every 4-6 hours, not exceeding 4000mg per day. Always consult your healthcare provider for personalized advice.",
-      diabetes: "For diabetes medication management, it's important to take your medications at the same time each day, monitor your blood sugar levels regularly, and maintain a balanced diet. Common diabetes medications include Metformin, which is usually taken with meals. Never adjust your dosage without consulting your doctor.",
-      pressure: "Blood pressure medications are typically taken at the same time each day. Some are best taken in the morning, while others work better at night. It's important to take them consistently and not skip doses. If you experience dizziness or other side effects, contact your healthcare provider.",
-      default: "That's a great question! For specific medical advice, I recommend consulting with your healthcare provider. However, I can provide general information about medications, remind you about proper medication usage, and help you understand basic health concepts. Is there something specific about your medications or health that you'd like to know more about?"
-    };
-
-    const lowerQuestion = question.toLowerCase();
-    if (lowerQuestion.includes('paracetamol') || lowerQuestion.includes('acetaminophen')) {
-      return responses.paracetamol;
-    } else if (lowerQuestion.includes('diabetes')) {
-      return responses.diabetes;
-    } else if (lowerQuestion.includes('pressure') || lowerQuestion.includes('blood pressure')) {
-      return responses.pressure;
-    } else {
-      return responses.default;
     }
   };
 
