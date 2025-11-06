@@ -40,9 +40,6 @@ const DrugSchema = new mongoose.Schema(
         'Other'
       ]
     },
-    manufacturer: {
-      type: String
-    },
     description: {
       type: String
     },
@@ -50,11 +47,6 @@ const DrugSchema = new mongoose.Schema(
       type: Number,
       default: 0,
       min: 0
-    },
-    stockStatus: {
-      type: String,
-      enum: ['In Stock', 'Low Stock', 'Out of Stock'],
-      default: 'In Stock'
     },
     prescriptionRequired: {
       type: Boolean,

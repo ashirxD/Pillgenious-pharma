@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import AdminSidebar from '../layout/AdminSidebar';
 import AdminHeader from '../layout/AdminHeader';
 import PharmacyUser from '../PharmacyUser';
+import Drugs from '../Drugs';
 
 export default function AdminDashboard() {
   const [currentTab, setCurrentTab] = useState('dashboard');
@@ -131,14 +132,7 @@ export default function AdminDashboard() {
         return <PharmacyUser />;
 
       case 'medicines':
-        return (
-          <div className="px-4 md:px-6 lg:px-8 py-6 md:py-8">
-            <h2 className="text-2xl font-bold text-gray-800 mb-6">Medicines Management</h2>
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <p className="text-gray-600">Medicines management coming soon...</p>
-            </div>
-          </div>
-        );
+        return <Drugs />;
 
       case 'users':
         return (

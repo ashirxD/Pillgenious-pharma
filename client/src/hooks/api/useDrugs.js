@@ -83,17 +83,17 @@ export const useDeleteDrug = () => {
   });
 };
 
-// Search drugs
+// Search drugs (uses the main drugs endpoint with search param)
 export const useSearchDrugs = (searchQuery) => {
   return useQuery({
     queryKey: [...drugsKeys.all, 'search', searchQuery],
     queryFn: async () => {
-      const { data } = await axiosInstance.get('/drugs/search', {
-        params: { q: searchQuery },
+      const { data } = await axiosInstance.get('/drugs', {
+        params: { search: searchQuery },
       });
       return data;
     },
-    enabled: searchQuery.length >= 2, // Only search if query is at least 2 chars
+    enabled: searchQuery && searchQuery.length >= 2, // Only search if query is at least 2 chars
   });
 };
 

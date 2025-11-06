@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Sidebar from '../layout/sidebar';
 import Header from '../layout/header';
 import Consultant from '../Consultant';
+import DrugShop from '../DrugShop';
 import { useDrugs } from '../../hooks/api/useDrugs';
 import { useAddToCart } from '../../hooks/api/useOrders';
 
@@ -116,6 +117,8 @@ export default function Dashboard() {
     switch(currentTab) {
       case 'consultation':
         return <Consultant />;
+      case 'drugshop':
+        return <DrugShop />;
       case 'profile':
         return (
           <div className="px-4 md:px-6 lg:px-8 py-6 md:py-8">
