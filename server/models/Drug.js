@@ -24,6 +24,11 @@ const DrugSchema = new mongoose.Schema(
       required: true,
       min: 0
     },
+    status: {
+      type: Number,
+      enum: [0, 1, 2, 3],
+      default: 0
+    },
     // Additional useful fields
     category: {
       type: String,

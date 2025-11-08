@@ -16,8 +16,8 @@ export default function DrugShop() {
   // Extract drugs from response (API returns { drugs, pagination })
   const drugs = data?.drugs || [];
   
-  // Filter out inactive drugs for users
-  const activeDrugs = drugs.filter(drug => drug.isActive !== false);
+  // Filter out inactive drugs and only show drugs with status 0 (not in cart)
+  const activeDrugs = drugs.filter(drug => drug.isActive !== false && drug.status === 0);
 
   const clearFilters = () => {
     setSearchQuery('');

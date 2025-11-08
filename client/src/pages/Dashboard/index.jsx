@@ -3,6 +3,7 @@ import Sidebar from '../layout/sidebar';
 import Header from '../layout/header';
 import Consultant from '../Consultant';
 import DrugShop from '../DrugShop';
+import Cart from '../Cart';
 import { useDrugs } from '../../hooks/api/useDrugs';
 import { useAddToCart } from '../../hooks/api/useOrders';
 
@@ -31,79 +32,10 @@ export default function Dashboard() {
     });
   };
 
-  // Sample medicine data (fallback)
-  const sampleMedicines = [
-    {
-      id: 1,
-      name: 'Paracetamol 500mg',
-      category: 'Pain Relief',
-      price: '$5.99',
-      stock: 'In Stock',
-      description: 'Effective pain relief and fever reducer',
-      manufacturer: 'Generic Pharma'
-    },
-    {
-      id: 2,
-      name: 'Amoxicillin 250mg',
-      category: 'Antibiotics',
-      price: '$12.99',
-      stock: 'In Stock',
-      description: 'Broad-spectrum antibiotic',
-      manufacturer: 'MediCare Labs'
-    },
-    {
-      id: 3,
-      name: 'Ibuprofen 400mg',
-      category: 'Pain Relief',
-      price: '$7.49',
-      stock: 'Low Stock',
-      description: 'Anti-inflammatory pain reliever',
-      manufacturer: 'HealthPlus'
-    },
-    {
-      id: 4,
-      name: 'Omeprazole 20mg',
-      category: 'Digestive',
-      price: '$9.99',
-      stock: 'In Stock',
-      description: 'Reduces stomach acid production',
-      manufacturer: 'DigestiCare'
-    },
-    {
-      id: 5,
-      name: 'Cetirizine 10mg',
-      category: 'Allergy',
-      price: '$6.99',
-      stock: 'In Stock',
-      description: 'Antihistamine for allergy relief',
-      manufacturer: 'AllergyFree Inc'
-    },
-    {
-      id: 6,
-      name: 'Metformin 500mg',
-      category: 'Diabetes',
-      price: '$11.99',
-      stock: 'In Stock',
-      description: 'Blood sugar control medication',
-      manufacturer: 'DiabetesControl'
-    }
-  ];
 
-  // Use API data if available, otherwise use sample data
-  const medicines = medicinesData && medicinesData.length > 0 ? medicinesData : sampleMedicines;
+  // Extract drugs from response (API returns { drugs, pagination })
+  const medicines = medicinesData?.drugs || [];
 
-  const quickActions = [
-    { icon: '💊', title: 'My Prescriptions', count: '3 Active', color: 'bg-blue-500' },
-    { icon: '⏰', title: 'Reminders', count: '2 Today', color: 'bg-purple-500' },
-    { icon: '🏥', title: 'Appointments', count: '1 Upcoming', color: 'bg-pink-500' },
-    { icon: '📋', title: 'Health Records', count: 'View All', color: 'bg-teal-600' }
-  ];
-
-  const healthTips = [
-    'Remember to take your medications at the same time each day',
-    'Stay hydrated - drink at least 8 glasses of water daily',
-    'Regular exercise improves medication effectiveness'
-  ];
 
   // Handle profile navigation from header
   const handleProfileNavigation = (page) => {
@@ -119,6 +51,8 @@ export default function Dashboard() {
         return <Consultant />;
       case 'drugshop':
         return <DrugShop />;
+      case 'cart':
+        return <Cart />;
       case 'profile':
         return (
           <div className="px-4 md:px-6 lg:px-8 py-6 md:py-8">
@@ -133,43 +67,7 @@ export default function Dashboard() {
         return (
           <>
         <div className="px-4 md:px-6 lg:px-8 py-6 md:py-8">
-        {/* Quick Actions Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
-          {quickActions.map((action, index) => (
-            <div
-              key={index}
-              className="bg-white rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer border-l-4 border-teal-700 transform hover:-translate-y-1"
-            >
-              <div className="p-5 md:p-6">
-                <div className={`${action.color} w-14 h-14 rounded-xl flex items-center justify-center text-2xl mb-3 shadow-lg`}>
-                  {action.icon}
-                </div>
-                <h3 className="font-bold text-gray-800 text-base md:text-lg mb-1">{action.title}</h3>
-                <p className="text-teal-600 font-semibold text-sm md:text-base">{action.count}</p>
-              </div>
-            </div>
-          ))}
-        </div>
 
-        {/* Health Tips Banner */}
-        <div className="bg-gradient-to-r from-teal-50 to-blue-50 border-l-4 border-teal-700 rounded-xl p-5 md:p-6 mb-6 md:mb-8 shadow-sm">
-          <div className="flex items-start">
-            <div className="flex-shrink-0 bg-teal-100 rounded-full p-3">
-              <span className="text-2xl md:text-3xl">💡</span>
-            </div>
-            <div className="ml-4 flex-1">
-              <h3 className="text-lg md:text-xl font-bold text-teal-900 mb-3">Today's Health Tips</h3>
-              <ul className="space-y-2 md:space-y-3">
-                {healthTips.map((tip, index) => (
-                  <li key={index} className="text-teal-800 flex items-start text-sm md:text-base">
-                    <span className="text-teal-700 mr-2 mt-1 font-bold">✓</span>
-                    <span>{tip}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </div>
 
         {/* Search Bar */}
         <div className="mb-6 md:mb-8">
@@ -236,58 +134,64 @@ export default function Dashboard() {
                 ? 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3' 
                 : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
             }`}>
-            {medicines.map((medicine) => (
-              <div
-                key={medicine.id}
-                className="bg-white rounded-xl shadow-sm hover:shadow-2xl transition-all duration-300 border border-gray-100 overflow-hidden transform hover:-translate-y-1 group"
-              >
-                <div className="bg-gradient-to-r from-teal-700 via-teal-600 to-teal-500 h-2"></div>
-                <div className="p-5 md:p-6">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-lg md:text-xl font-bold text-gray-800 mb-2 group-hover:text-teal-700 transition-colors truncate">
-                        {medicine.name}
-                      </h3>
-                      <span className="inline-block px-3 py-1 bg-gradient-to-r from-teal-100 to-teal-50 text-teal-700 text-xs md:text-sm rounded-full font-semibold border border-teal-200">
-                        {medicine.category}
-                      </span>
+            {medicines.map((medicine) => {
+              const medicineId = medicine._id || medicine.id;
+              const stockStatus = medicine.stockQuantity > 0 ? 'In Stock' : 'Out of Stock';
+              const stockClass = medicine.stockQuantity > 0 
+                ? 'bg-green-100 text-green-700 border border-green-200'
+                : 'bg-orange-100 text-orange-700 border border-orange-200';
+              
+              return (
+                <div
+                  key={medicineId}
+                  className="bg-white rounded-xl shadow-sm hover:shadow-2xl transition-all duration-300 border border-gray-100 overflow-hidden transform hover:-translate-y-1 group"
+                >
+                  <div className="bg-gradient-to-r from-teal-700 via-teal-600 to-teal-500 h-2"></div>
+                  <div className="p-5 md:p-6">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-lg md:text-xl font-bold text-gray-800 mb-2 group-hover:text-teal-700 transition-colors truncate">
+                          {medicine.drugName || medicine.name}
+                        </h3>
+                        <span className="inline-block px-3 py-1 bg-gradient-to-r from-teal-100 to-teal-50 text-teal-700 text-xs md:text-sm rounded-full font-semibold border border-teal-200">
+                          {medicine.category || 'General'}
+                        </span>
+                      </div>
+                      <div className="ml-2 flex-shrink-0">
+                        <span
+                          className={`px-2.5 md:px-3 py-1 rounded-full text-xs font-bold shadow-sm ${stockClass}`}
+                        >
+                          {stockStatus}
+                        </span>
+                      </div>
                     </div>
-                    <div className="ml-2 flex-shrink-0">
-                      <span
-                        className={`px-2.5 md:px-3 py-1 rounded-full text-xs font-bold shadow-sm ${
-                          medicine.stock === 'In Stock'
-                            ? 'bg-green-100 text-green-700 border border-green-200'
-                            : 'bg-orange-100 text-orange-700 border border-orange-200'
-                        }`}
+                    
+                    <p className="text-gray-600 mb-4 text-sm md:text-base leading-relaxed">
+                      {medicine.description || 'No description available'}
+                    </p>
+                    
+                    <div className="mb-4 pb-4 border-b border-gray-200">
+                      <p className="text-xs md:text-sm text-gray-500 mb-1">Type</p>
+                      <p className="text-gray-800 font-semibold text-sm md:text-base">{medicine.type || 'Tablet'}</p>
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-2xl md:text-3xl font-bold text-teal-700">${medicine.price?.toFixed(2) || '0.00'}</p>
+                        <p className="text-xs text-gray-500">per pack</p>
+                      </div>
+                      <button 
+                        onClick={() => handleAddToCart({ ...medicine, id: medicineId })}
+                        disabled={addToCartMutation.isPending || medicine.stockQuantity === 0}
+                        className="px-4 md:px-6 py-2 md:py-2.5 bg-teal-700 text-white rounded-lg hover:bg-teal-800 active:bg-teal-900 transition-all font-semibold shadow-md hover:shadow-lg text-sm md:text-base disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        {medicine.stock}
-                      </span>
+                        {addToCartMutation.isPending ? 'Adding...' : medicine.stockQuantity === 0 ? 'Out of Stock' : 'Add to Cart'}
+                      </button>
                     </div>
-                  </div>
-                  
-                  <p className="text-gray-600 mb-4 text-sm md:text-base leading-relaxed">{medicine.description}</p>
-                  
-                  <div className="mb-4 pb-4 border-b border-gray-200">
-                    <p className="text-xs md:text-sm text-gray-500 mb-1">Manufacturer</p>
-                    <p className="text-gray-800 font-semibold text-sm md:text-base">{medicine.manufacturer}</p>
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-2xl md:text-3xl font-bold text-teal-700">{medicine.price}</p>
-                      <p className="text-xs text-gray-500">per pack</p>
-                    </div>
-                    <button 
-                      onClick={() => handleAddToCart(medicine)}
-                      disabled={addToCartMutation.isPending}
-                      className="px-4 md:px-6 py-2 md:py-2.5 bg-teal-700 text-white rounded-lg hover:bg-teal-800 active:bg-teal-900 transition-all font-semibold shadow-md hover:shadow-lg text-sm md:text-base disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {addToCartMutation.isPending ? 'Adding...' : 'Add to Cart'}
-                    </button>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
             </div>
           )}
         </div>

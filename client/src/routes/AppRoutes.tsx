@@ -1,15 +1,15 @@
 import React, { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoutes from './ProtectedRoutes';
+import PublicRoutes from './PublicRoutes';
 import Loader from '../components/Loader';
 
-// Lazy-loaded pages
-// AuthApp (auth UI) moved to its own file
 const AuthApp = lazy(() => import('../pages/auth/AuthApp'));
 const AdminLogin = lazy(() => import('../pages/auth/AdminLogin'));
-// A simple placeholder for protected area (Dashboard)
+		
 const Dashboard = lazy(() => import('../pages/Dashboard'));
 const AdminDashboard = lazy(() => import('../pages/admin/Dashboard'));
+const Checkout = lazy(() => import('../pages/Checkout'));
 
 // Minimal Error Boundary
 class ErrorBoundary extends React.Component {
@@ -44,17 +44,21 @@ export default function AppRoutes() {
 		<ErrorBoundary>
 			<Suspense fallback={<Loader />}>
 						<Routes>
+						{/* Public routes (auth pages) - redirect if already logged in */}
+						<Route element={<PublicRoutes />}>
 							  {/* Use the auth app as the root route */}
 							  <Route path="/" element={<AuthApp />} />
 							  {/* Route to open the auth app directly on signup view */}
 							  <Route path="/signup" element={<AuthApp initialPage="signup" />} />
 							  {/* Admin/Pharmacy login page */}
 							  <Route path="/admin-login" element={<AdminLogin />} />
+						</Route>
 
 						{/* Protected routes group */}
 						<Route element={<ProtectedRoutes />}>
 							<Route path="/dashboard" element={<Dashboard />} />
 							<Route path="/admin/dashboard" element={<AdminDashboard />} />
+							<Route path="/checkout" element={<Checkout />} />
 						</Route>
 
 						{/* Catch-all -> if user hits unknown route, redirect to root */}

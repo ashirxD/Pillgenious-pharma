@@ -96,18 +96,63 @@ export const useAddToCart = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cart'] });
+      queryClient.invalidateQueries({ queryKey: ['drugs'] }); // Refresh drugs list to update status
       toast.success('Added to cart!');
     },
   });
 };
 
 // Get cart items
+// Note: 404 errors are treated as empty cart (cart doesn't exist yet)
 export const useCart = () => {
   return useQuery({
     queryKey: ['cart'],
     queryFn: async () => {
-      const { data } = await axiosInstance.get('/cart');
+      try {
+        const { data } = await axiosInstance.get('/cart');
+        return data;
+      } catch (error) {
+        // 404 means cart doesn't exist yet - treat as empty cart (not an error)
+        if (error.response?.status === 404) {
+          return { items: [] };
+        }
+        // Re-throw all other errors (network errors, 500, etc.)
+        throw error;
+      }
+    },
+    retry: false, // Don't retry - 404 is handled, other errors shouldn't retry
+  });
+};
+
+// Update cart item quantity
+export const useUpdateCartItem = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ itemId, quantity }) => {
+      const { data } = await axiosInstance.put(`/cart/${itemId}`, { quantity });
       return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cart'] });
+      toast.success('Cart updated!');
+    },
+  });
+};
+
+// Remove item from cart
+export const useRemoveFromCart = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (itemId) => {
+      const { data } = await axiosInstance.delete(`/cart/${itemId}`);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cart'] });
+      queryClient.invalidateQueries({ queryKey: ['drugs'] }); // Refresh drugs list to update status
+      toast.success('Item removed from cart!');
     },
   });
 };

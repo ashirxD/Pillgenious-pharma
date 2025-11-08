@@ -23,8 +23,9 @@ router.get('/', async (req, res, next) => {
       sortOrder = 'desc'
     } = req.query;
 
-    // Build query
-    const query = { isActive: true };
+    // Build query - only show drugs with status 0 (available, not in cart)
+    // Status 0 = available, Status 1 = in cart, Status 2/3 = other states
+    const query = { isActive: true, status: 0 };
 
     if (category) {
       query.category = category;
@@ -140,7 +141,8 @@ router.post('/', requireAdmin, async (req, res, next) => {
       stockQuantity: stockQuantity || 0,
       prescriptionRequired: prescriptionRequired || false,
       images: images || [],
-      isActive: true
+      isActive: true,
+      status: 0 // New drugs start with status 0
     });
 
     await drug.save();
