@@ -12,6 +12,7 @@ export default function Checkout({
   handleCardNumberChange,
   handleExpiryDateChange,
   handleCvvChange,
+  isProcessing = false,
 }) {
 
   return (
@@ -209,95 +210,6 @@ export default function Checkout({
                     </div>
                   </label>
                 </div>
-
-                {/* Card Details (if Online Payment) */}
-                {formData.paymentMethod === 'Online Payment' && (
-                  <div className="mt-6 pt-6 border-t border-gray-200">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Card Details</h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Card Number *
-                        </label>
-                        <input
-                          type="text"
-                          name="cardNumber"
-                          value={formData.cardNumber}
-                          onChange={handleCardNumberChange}
-                          maxLength={19}
-                          className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all ${
-                            errors.cardNumber ? 'border-red-500' : 'border-gray-300'
-                          }`}
-                          placeholder="1234 5678 9012 3456"
-                        />
-                        {errors.cardNumber && (
-                          <p className="text-red-500 text-sm mt-1">{errors.cardNumber}</p>
-                        )}
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Cardholder Name *
-                        </label>
-                        <input
-                          type="text"
-                          name="cardName"
-                          value={formData.cardName}
-                          onChange={handleChange}
-                          className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all ${
-                            errors.cardName ? 'border-red-500' : 'border-gray-300'
-                          }`}
-                          placeholder="John Doe"
-                        />
-                        {errors.cardName && (
-                          <p className="text-red-500 text-sm mt-1">{errors.cardName}</p>
-                        )}
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Expiry Date *
-                          </label>
-                          <input
-                            type="text"
-                            name="expiryDate"
-                            value={formData.expiryDate}
-                            onChange={handleExpiryDateChange}
-                            maxLength={5}
-                            className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all ${
-                              errors.expiryDate ? 'border-red-500' : 'border-gray-300'
-                            }`}
-                            placeholder="MM/YY"
-                          />
-                          {errors.expiryDate && (
-                            <p className="text-red-500 text-sm mt-1">{errors.expiryDate}</p>
-                          )}
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            CVV *
-                          </label>
-                          <input
-                            type="text"
-                            name="cvv"
-                            value={formData.cvv}
-                            onChange={handleCvvChange}
-                            maxLength={4}
-                            className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all ${
-                              errors.cvv ? 'border-red-500' : 'border-gray-300'
-                            }`}
-                            placeholder="123"
-                          />
-                          {errors.cvv && (
-                            <p className="text-red-500 text-sm mt-1">{errors.cvv}</p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
 
@@ -361,10 +273,10 @@ export default function Checkout({
 
                 <button
                   type="submit"
-                  disabled={createOrderMutation.isPending}
+                  disabled={isProcessing}
                   className="w-full px-6 py-3 bg-teal-700 text-white rounded-lg hover:bg-teal-800 transition-all font-semibold shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {createOrderMutation.isPending ? 'Processing...' : 'Place Order'}
+                  {isProcessing ? 'Processing...' : formData.paymentMethod === 'Online Payment' ? 'Pay Now' : 'Place Order'}
                 </button>
               </div>
             </div>

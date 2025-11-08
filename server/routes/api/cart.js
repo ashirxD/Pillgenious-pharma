@@ -1,36 +1,40 @@
 const express = require('express');
 const router = express.Router();
 const Drug = require('../../models/Drug');
+const CartItem = require('../../models/CartItem');
 const requireAuth = require('../../middleware/auth');
 
 /**
  * GET /api/cart
- * Authenticated users only - Get all drugs with status 1 (in cart)
+ * Authenticated users only - Get all cart items for the current user
  */
 router.get('/', requireAuth, async (req, res, next) => {
   try {
-    // Get all drugs with status 1 (in cart)
-    const drugs = await Drug.find({ 
-      status: 1,
-      isActive: true 
-    }).lean();
+    // Get all cart items for the current user with status 1 (in cart)
+    const cartItems = await CartItem.find({ 
+      user: req.user.id,
+      status: 1
+    }).populate('drug').lean();
 
     // Format response to match cart items structure
-    const items = drugs.map(drug => ({
-      _id: drug._id,
-      id: drug._id,
-      drugName: drug.drugName,
-      name: drug.drugName,
-      type: drug.type,
-      category: drug.category,
-      price: drug.price,
-      quantity: 1, // Default quantity, can be extended later
-      stockQuantity: drug.stockQuantity,
-      description: drug.description,
-      sideEffects: drug.sideEffects,
-      prescriptionRequired: drug.prescriptionRequired,
-      images: drug.images
-    }));
+    const items = cartItems
+      .filter(item => item.drug && item.drug.isActive) // Filter out inactive drugs
+      .map(item => ({
+        _id: item._id,
+        id: item._id,
+        drugId: item.drug._id,
+        drugName: item.drug.drugName,
+        name: item.drug.drugName,
+        type: item.drug.type,
+        category: item.drug.category,
+        price: item.drug.price,
+        quantity: item.quantity,
+        stockQuantity: item.drug.stockQuantity,
+        description: item.drug.description,
+        sideEffects: item.drug.sideEffects,
+        prescriptionRequired: item.drug.prescriptionRequired,
+        images: item.drug.images
+      }));
 
     res.json({ items });
   } catch (err) {
@@ -40,7 +44,7 @@ router.get('/', requireAuth, async (req, res, next) => {
 
 /**
  * POST /api/cart/add
- * Authenticated users only - Add drug to cart (change status from 0 to 1)
+ * Authenticated users only - Add drug to cart (create CartItem with status 1)
  */
 router.post('/add', requireAuth, async (req, res, next) => {
   try {
@@ -60,7 +64,14 @@ router.post('/add', requireAuth, async (req, res, next) => {
       return res.status(404).json({ error: 'Drug not found or unavailable' });
     }
 
-    if (drug.status === 1) {
+    // Check if drug is already in cart
+    const existingCartItem = await CartItem.findOne({
+      user: req.user.id,
+      drug: drugId,
+      status: 1
+    });
+
+    if (existingCartItem) {
       return res.status(400).json({ error: 'Drug is already in cart' });
     }
 
@@ -71,9 +82,16 @@ router.post('/add', requireAuth, async (req, res, next) => {
       });
     }
 
-    // Update drug status to 1 (in cart)
-    drug.status = 1;
-    await drug.save();
+    // Create new cart item with status 1 (in cart)
+    const cartItem = new CartItem({
+      user: req.user.id,
+      drug: drugId,
+      quantity: quantity,
+      status: 1
+    });
+
+    await cartItem.save();
+    await cartItem.populate('drug');
 
     res.json({
       message: 'Drug added to cart successfully',
@@ -81,13 +99,15 @@ router.post('/add', requireAuth, async (req, res, next) => {
         id: drug._id,
         drugName: drug.drugName,
         price: drug.price,
-        type: drug.type,
-        status: drug.status
+        type: drug.type
       }
     });
   } catch (err) {
     if (err.name === 'CastError') {
       return res.status(404).json({ error: 'Drug not found' });
+    }
+    if (err.code === 11000) {
+      return res.status(400).json({ error: 'Drug is already in cart' });
     }
     next(err);
   }
@@ -95,43 +115,55 @@ router.post('/add', requireAuth, async (req, res, next) => {
 
 /**
  * PUT /api/cart/:id
- * Authenticated users only - Update cart item quantity (for future use)
- * Currently just updates the drug, but keeps status as 1
+ * Authenticated users only - Update cart item quantity
  */
 router.put('/:id', requireAuth, async (req, res, next) => {
   try {
     const { quantity } = req.body;
-    const drugId = req.params.id;
+    const cartItemId = req.params.id;
 
     if (quantity !== undefined && quantity <= 0) {
       return res.status(400).json({ error: 'Quantity must be greater than 0' });
     }
 
-    const drug = await Drug.findById(drugId);
+    const cartItem = await CartItem.findOne({
+      _id: cartItemId,
+      user: req.user.id,
+      status: 1
+    }).populate('drug');
 
-    if (!drug || !drug.isActive) {
+    if (!cartItem) {
+      return res.status(404).json({ error: 'Cart item not found' });
+    }
+
+    if (!cartItem.drug || !cartItem.drug.isActive) {
       return res.status(404).json({ error: 'Drug not found or unavailable' });
     }
 
-    if (drug.status !== 1) {
-      return res.status(400).json({ error: 'Drug is not in cart' });
+    // Check stock availability if quantity is being updated
+    if (quantity !== undefined) {
+      if (cartItem.drug.stockQuantity < quantity) {
+        return res.status(400).json({ 
+          error: 'Insufficient stock',
+          available: cartItem.drug.stockQuantity
+        });
+      }
+      cartItem.quantity = quantity;
+      await cartItem.save();
     }
 
-    // For now, we just confirm the drug is in cart
-    // Quantity management can be extended later if needed
     res.json({
       message: 'Cart item updated successfully',
       drug: {
-        id: drug._id,
-        drugName: drug.drugName,
-        price: drug.price,
-        type: drug.type,
-        status: drug.status
+        id: cartItem.drug._id,
+        drugName: cartItem.drug.drugName,
+        price: cartItem.drug.price,
+        type: cartItem.drug.type
       }
     });
   } catch (err) {
     if (err.name === 'CastError') {
-      return res.status(404).json({ error: 'Drug not found' });
+      return res.status(404).json({ error: 'Cart item not found' });
     }
     next(err);
   }
@@ -139,32 +171,31 @@ router.put('/:id', requireAuth, async (req, res, next) => {
 
 /**
  * DELETE /api/cart/:id
- * Authenticated users only - Remove drug from cart (change status from 1 to 0)
+ * Authenticated users only - Remove drug from cart (delete CartItem or set status to 0)
  */
 router.delete('/:id', requireAuth, async (req, res, next) => {
   try {
-    const drugId = req.params.id;
+    const cartItemId = req.params.id;
 
-    const drug = await Drug.findById(drugId);
+    const cartItem = await CartItem.findOne({
+      _id: cartItemId,
+      user: req.user.id,
+      status: 1
+    });
 
-    if (!drug) {
-      return res.status(404).json({ error: 'Drug not found' });
+    if (!cartItem) {
+      return res.status(404).json({ error: 'Cart item not found' });
     }
 
-    if (drug.status !== 1) {
-      return res.status(400).json({ error: 'Drug is not in cart' });
-    }
-
-    // Update drug status back to 0 (not in cart)
-    drug.status = 0;
-    await drug.save();
+    // Delete the cart item
+    await CartItem.findByIdAndDelete(cartItemId);
 
     res.json({
       message: 'Drug removed from cart successfully'
     });
   } catch (err) {
     if (err.name === 'CastError') {
-      return res.status(404).json({ error: 'Drug not found' });
+      return res.status(404).json({ error: 'Cart item not found' });
     }
     next(err);
   }

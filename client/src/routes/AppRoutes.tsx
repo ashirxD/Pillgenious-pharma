@@ -44,13 +44,9 @@ export default function AppRoutes() {
 		<ErrorBoundary>
 			<Suspense fallback={<Loader />}>
 						<Routes>
-						{/* Public routes (auth pages) - redirect if already logged in */}
 						<Route element={<PublicRoutes />}>
-							  {/* Use the auth app as the root route */}
 							  <Route path="/" element={<AuthApp />} />
-							  {/* Route to open the auth app directly on signup view */}
 							  <Route path="/signup" element={<AuthApp initialPage="signup" />} />
-							  {/* Admin/Pharmacy login page */}
 							  <Route path="/admin-login" element={<AdminLogin />} />
 						</Route>
 

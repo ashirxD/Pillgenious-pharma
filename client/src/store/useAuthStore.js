@@ -1,18 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-/**
- * Auth store shape:
- * {
- *   token: string | null,
- *   user: object | null,
- *   setAuth: ({ token, user }) => void,
- *   logout: () => void,
- *   isAuthenticated: () => boolean
- * }
- *
- * Persisted to localStorage under 'pg_auth' key.
- */
 
 const useAuthStore = create(
   persist(

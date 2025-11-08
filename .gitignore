@@ -27,3 +27,4 @@ out
 !.vscode/extensions.json
 *.sw?
 
+package-lock.json

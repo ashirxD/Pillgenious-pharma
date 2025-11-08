@@ -35,6 +35,35 @@ export const useOrder = (id) => {
   });
 };
 
+// Create payment intent for Stripe
+export const useCreatePaymentIntent = () => {
+  return useMutation({
+    mutationFn: async ({ amount, currency = 'usd' }) => {
+      const { data } = await axiosInstance.post('/orders/create-payment-intent', {
+        amount,
+        currency,
+      });
+      return data;
+    },
+  });
+};
+
+// Confirm payment and create order
+export const useConfirmPayment = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (orderData) => {
+      const { data } = await axiosInstance.post('/orders/confirm-payment', orderData);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ordersKeys.all });
+      toast.success('Order placed successfully!');
+    },
+  });
+};
+
 // Create new order
 export const useCreateOrder = () => {
   const queryClient = useQueryClient();
@@ -96,7 +125,7 @@ export const useAddToCart = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cart'] });
-      queryClient.invalidateQueries({ queryKey: ['drugs'] }); // Refresh drugs list to update status
+      queryClient.invalidateQueries({ queryKey: ['drugs'] }); // Refresh drugs list
       toast.success('Added to cart!');
     },
   });
@@ -151,7 +180,7 @@ export const useRemoveFromCart = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cart'] });
-      queryClient.invalidateQueries({ queryKey: ['drugs'] }); // Refresh drugs list to update status
+      queryClient.invalidateQueries({ queryKey: ['drugs'] }); // Refresh drugs list
       toast.success('Item removed from cart!');
     },
   });

@@ -13,7 +13,6 @@ interface Drug {
   prescriptionRequired?: boolean;
   images?: string[];
   isActive?: boolean;
-  status?: number; // 0 = not in cart, 1 = in cart, 2 = ordered, 3 = other
 }
 
 interface DrugCardProps {
@@ -55,11 +54,7 @@ export default function DrugCards({ drug }: DrugCardProps) {
       return;
     }
 
-    // Check if drug is already in cart (status 1)
-    if (drug.status === 1) {
-      return;
-    }
-
+    // Backend will handle duplicate check via CartItem model
     addToCartMutation.mutate({
       drugId: drug._id,
       quantity: 1,

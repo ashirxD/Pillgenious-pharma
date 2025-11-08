@@ -5,7 +5,7 @@ const OrderSchema = new mongoose.Schema(
     orderNumber: {
       type: String,
       unique: true,
-      required: true,
+      required: false, // Auto-generated in pre-save hook
       index: true
     },
     user: {
@@ -19,10 +19,7 @@ const OrderSchema = new mongoose.Schema(
     required: true,
     min: 0
    },
-    prescription: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Prescription'
-    },
+
  
 
     status: {
@@ -55,19 +52,129 @@ const OrderSchema = new mongoose.Schema(
     transactionId: {
       type: String
     },
+    items: [{
+      drugId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Drug',
+        required: true
+      },
+      drugName: {
+        type: String,
+        required: true
+      },
+      quantity: {
+        type: Number,
+        required: true,
+        min: 1
+      },
+      price: {
+        type: Number,
+        required: true,
+        min: 0
+      },
+      subtotal: {
+        type: Number,
+        required: true,
+        min: 0
+      }
+    }],
+    subtotal: {
+      type: Number,
+      required: true,
+      min: 0
+    },
+    tax: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    deliveryFee: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    discount: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    total: {
+      type: Number,
+      required: true,
+      min: 0
+    },
     shippingAddress: {
       fullName: {
         type: String,
         required: true
       },
-      
+      email: {
+        type: String,
+        required: true
+      },
+      phone: {
+        type: String,
+        required: true
+      },
+      address: {
+        type: String,
+        required: true
+      },
+      city: {
+        type: String,
+        required: true
+      },
+      state: {
+        type: String,
+        required: true
+      },
+      zipCode: {
+        type: String,
+        required: true
+      }
+    },
+    stripePaymentIntentId: {
+      type: String
+    },
+    statusHistory: [{
+      status: {
+        type: String,
+        required: true
+      },
+      timestamp: {
+        type: Date,
+        default: Date.now
+      },
+      note: {
+        type: String,
+        default: ''
+      }
+    }],
+    deliveredAt: {
+      type: Date
+    },
+    cancelledAt: {
+      type: Date
+    },
+    cancellationReason: {
+      type: String
+    },
+    refundedAt: {
+      type: Date
+    },
+    refundAmount: {
+      type: Number
     }
+  },
+  {
+    timestamps: true
   }
 );
 
 // Generate unique order number
 OrderSchema.pre('save', async function(next) {
-  if (this.isNew && !this.orderNumber) {
+  // Always generate orderNumber if it doesn't exist (for new documents)
+  if (!this.orderNumber) {
     const timestamp = Date.now().toString(36).toUpperCase();
     const random = Math.random().toString(36).substring(2, 7).toUpperCase();
     this.orderNumber = `ORD-${timestamp}-${random}`;
@@ -77,13 +184,28 @@ OrderSchema.pre('save', async function(next) {
 
 // Calculate totals before saving
 OrderSchema.pre('save', function(next) {
-  // Calculate subtotal from items if not set
-  if (!this.subtotal) {
-    this.subtotal = this.items.reduce((sum, item) => sum + item.subtotal, 0);
+  // Calculate subtotal from items if not set and items exist
+  if (!this.subtotal && this.items && this.items.length > 0) {
+    this.subtotal = this.items.reduce((sum, item) => sum + (item.subtotal || (item.price * item.quantity)), 0);
   }
   
-  // Calculate total
-  this.total = this.subtotal + this.tax + this.deliveryFee - this.discount;
+  // Calculate total if not set
+  if (!this.total) {
+    const subtotal = this.subtotal || 0;
+    const tax = this.tax || 0;
+    const deliveryFee = this.deliveryFee || 0;
+    const discount = this.discount || 0;
+    this.total = subtotal + tax + deliveryFee - discount;
+  }
+  
+  // Initialize status history if new order
+  if (this.isNew && (!this.statusHistory || this.statusHistory.length === 0)) {
+    this.statusHistory = [{
+      status: this.status || 'Pending',
+      timestamp: new Date(),
+      note: 'Order created'
+    }];
+  }
   
   next();
 });
