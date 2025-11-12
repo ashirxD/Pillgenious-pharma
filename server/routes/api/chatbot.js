@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const OpenAI = require('openai');
-const requireAuth = require('../../middleware/auth');
+const getServerSession = require('../../middleware/serverSession');
 const ChatMessage = require('../../models/ChatMessage');
 
 // Initialize OpenAI client
@@ -16,7 +16,7 @@ const openai = OPEN_AI_KEY ? new OpenAI({ apiKey: OPEN_AI_KEY }) : null;
 const SYSTEM_PROMPT = `Medical AI assistant. Analyze symptoms/diseases, suggest generic medications with dosages, provide treatment instructions and safety warnings. Include disclaimers: "This is educational only, not medical advice. Consult a healthcare provider before taking medication. Seek emergency care for serious symptoms." Be concise, empathetic, and recommend professional consultation when needed.`;
 
 // POST /api/chatbot/message
-router.post('/message', requireAuth, async (req, res, next) => {
+router.post('/message', getServerSession, async (req, res, next) => {
   try {
     const { message } = req.body;
     const userId = req.user._id || req.user.id;
@@ -126,7 +126,7 @@ router.post('/message', requireAuth, async (req, res, next) => {
 });
 
 // GET /api/chatbot/history - Get chat history for authenticated user
-router.get('/history', requireAuth, async (req, res, next) => {
+router.get('/history', getServerSession, async (req, res, next) => {
   try {
     const userId = req.user._id || req.user.id;
     const limit = parseInt(req.query.limit) || 50; // Default to last 50 messages
@@ -156,7 +156,7 @@ router.get('/history', requireAuth, async (req, res, next) => {
 });
 
 // DELETE /api/chatbot/history - Clear chat history for authenticated user
-router.delete('/history', requireAuth, async (req, res, next) => {
+router.delete('/history', getServerSession, async (req, res, next) => {
   try {
     const userId = req.user._id || req.user.id;
 

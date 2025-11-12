@@ -1,14 +1,14 @@
 const express = require('express');
 const router = express.Router();
-const requireAuth = require('../../middleware/auth');
+const getServerSession = require('../../middleware/serverSession');
 const User = require('../../models/User');
 
-router.get('/me', requireAuth, (req, res) => {
+router.get('/me', getServerSession, (req, res) => {
   res.json({ user: req.user });
 });
 
 // Get all pharmacy users
-router.get('/pharmacy-users', requireAuth, async (req, res, next) => {
+router.get('/pharmacy-users', getServerSession, async (req, res, next) => {
   try {
     // Only fetch users with role 'pharmacyUser'
     const users = await User.find({ role: 'pharmacyUser' })
@@ -22,7 +22,7 @@ router.get('/pharmacy-users', requireAuth, async (req, res, next) => {
 });
 
 // Delete a pharmacy user
-router.delete('/pharmacy-users/:id', requireAuth, async (req, res, next) => {
+router.delete('/pharmacy-users/:id', getServerSession, async (req, res, next) => {
   try {
     const { id } = req.params;
 

@@ -2,13 +2,13 @@ const express = require('express');
 const router = express.Router();
 const Drug = require('../../models/Drug');
 const CartItem = require('../../models/CartItem');
-const requireAuth = require('../../middleware/auth');
+const getServerSession = require('../../middleware/serverSession');
 
 /**
  * GET /api/cart
  * Authenticated users only - Get all cart items for the current user
  */
-router.get('/', requireAuth, async (req, res, next) => {
+router.get('/', getServerSession, async (req, res, next) => {
   try {
     // Get all cart items for the current user with status 1 (in cart)
     const cartItems = await CartItem.find({ 
@@ -46,7 +46,7 @@ router.get('/', requireAuth, async (req, res, next) => {
  * POST /api/cart/add
  * Authenticated users only - Add drug to cart (create CartItem with status 1)
  */
-router.post('/add', requireAuth, async (req, res, next) => {
+router.post('/add', getServerSession, async (req, res, next) => {
   try {
     const { drugId, quantity = 1 } = req.body;
 
@@ -117,7 +117,7 @@ router.post('/add', requireAuth, async (req, res, next) => {
  * PUT /api/cart/:id
  * Authenticated users only - Update cart item quantity
  */
-router.put('/:id', requireAuth, async (req, res, next) => {
+router.put('/:id', getServerSession, async (req, res, next) => {
   try {
     const { quantity } = req.body;
     const cartItemId = req.params.id;
@@ -173,7 +173,7 @@ router.put('/:id', requireAuth, async (req, res, next) => {
  * DELETE /api/cart/:id
  * Authenticated users only - Remove drug from cart (delete CartItem or set status to 0)
  */
-router.delete('/:id', requireAuth, async (req, res, next) => {
+router.delete('/:id', getServerSession, async (req, res, next) => {
   try {
     const cartItemId = req.params.id;
 

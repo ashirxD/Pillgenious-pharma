@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Drug = require('../../models/Drug');
-const requireAuth = require('../../middleware/auth');
+const getServerSession = require('../../middleware/serverSession');
 const requireAdmin = require('../../middleware/adminAuth');
 
 /**
@@ -253,7 +253,7 @@ router.delete('/:id', requireAdmin, async (req, res, next) => {
  * Authenticated users only - Purchase a drug (add to cart or create order)
  * This is a simplified purchase endpoint - you can extend it to integrate with your cart/order system
  */
-router.post('/:id/buy', requireAuth, async (req, res, next) => {
+router.post('/:id/buy', getServerSession, async (req, res, next) => {
   try {
     const { quantity = 1 } = req.body;
     const drugId = req.params.id;

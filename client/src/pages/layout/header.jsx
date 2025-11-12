@@ -7,11 +7,12 @@ export default function Header({ currentPage, onNavigate }) {
   const navigate = useNavigate()
 
   const handleProfileClick = () => {
-    // Navigate to profile page or trigger profile action
+    // Navigate to profile page
+    navigate('/profile')
+    // Also trigger onNavigate if provided (for Dashboard tab switching)
     if (onNavigate) {
       onNavigate('profile')
     }
-    // You can also use navigate('/profile') if you have a route set up
   }
 
   // Get user initials for avatar

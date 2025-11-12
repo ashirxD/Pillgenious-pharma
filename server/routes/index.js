@@ -8,6 +8,7 @@ const chatbotRouter = require('./api/chatbot');
 const drugRouter = require('./api/drug');
 const cartRouter = require('./api/cart');
 const orderRouter = require('./api/order');
+const userRouter = require('./api/user');
 
 router.use('/auth', authRouter);
 router.use('/protected', protectedRouter);
@@ -15,5 +16,6 @@ router.use('/chatbot', chatbotRouter);
 router.use('/drugs', drugRouter);
 router.use('/cart', cartRouter);
 router.use('/orders', orderRouter);
+router.use('/user', userRouter);
 
 module.exports = router;

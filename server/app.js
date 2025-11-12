@@ -12,10 +12,6 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// Passport (JWT)
-const passport = require('./utils/passport');
-app.use(passport.initialize());
-
 // Connect to DB
 connectDB();
 

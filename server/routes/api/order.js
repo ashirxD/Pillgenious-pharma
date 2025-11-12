@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Order = require('../../models/Order');
-const requireAuth = require('../../middleware/auth');
+const getServerSession = require('../../middleware/serverSession');
 
 // Initialize Stripe with secret key from environment
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -13,7 +13,7 @@ const stripe = process.env.STRIPE_SECRET_KEY ? require('stripe')(process.env.STR
  * POST /api/orders/create-payment-intent
  * Create a Stripe payment intent for online payment
  */
-router.post('/create-payment-intent', requireAuth, async (req, res, next) => {
+router.post('/create-payment-intent', getServerSession, async (req, res, next) => {
   try {
     if (!stripe) {
       return res.status(500).json({ error: 'Stripe is not configured. Please set STRIPE_SECRET_KEY in environment variables.' });
@@ -47,7 +47,7 @@ router.post('/create-payment-intent', requireAuth, async (req, res, next) => {
  * POST /api/orders
  * Create a new order
  */
-router.post('/', requireAuth, async (req, res, next) => {
+router.post('/', getServerSession, async (req, res, next) => {
   try {
     const {
       items,
@@ -138,7 +138,7 @@ router.post('/', requireAuth, async (req, res, next) => {
  * POST /api/orders/confirm-payment
  * Confirm payment and create order after successful Stripe payment
  */
-router.post('/confirm-payment', requireAuth, async (req, res, next) => {
+router.post('/confirm-payment', getServerSession, async (req, res, next) => {
   try {
     if (!stripe) {
       return res.status(500).json({ error: 'Stripe is not configured. Please set STRIPE_SECRET_KEY in environment variables.' });
@@ -233,7 +233,7 @@ router.post('/confirm-payment', requireAuth, async (req, res, next) => {
  * GET /api/orders
  * Get all orders for the authenticated user
  */
-router.get('/', requireAuth, async (req, res, next) => {
+router.get('/', getServerSession, async (req, res, next) => {
   try {
     const orders = await Order.find({ user: req.user._id })
       .sort({ createdAt: -1 })
@@ -250,7 +250,7 @@ router.get('/', requireAuth, async (req, res, next) => {
  * GET /api/orders/:id
  * Get a single order by ID
  */
-router.get('/:id', requireAuth, async (req, res, next) => {
+router.get('/:id', getServerSession, async (req, res, next) => {
   try {
     const order = await Order.findOne({
       _id: req.params.id,
@@ -274,7 +274,7 @@ router.get('/:id', requireAuth, async (req, res, next) => {
  * PUT /api/orders/:id/cancel
  * Cancel an order
  */
-router.put('/:id/cancel', requireAuth, async (req, res, next) => {
+router.put('/:id/cancel', getServerSession, async (req, res, next) => {
   try {
     const order = await Order.findOne({
       _id: req.params.id,

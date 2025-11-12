@@ -10,6 +10,7 @@ const AdminLogin = lazy(() => import('../pages/auth/AdminLogin'));
 const Dashboard = lazy(() => import('../pages/Dashboard'));
 const AdminDashboard = lazy(() => import('../pages/admin/Dashboard'));
 const Checkout = lazy(() => import('../pages/Checkout'));
+const Profile = lazy(() => import('../pages/Profile/Index'));
 
 // Minimal Error Boundary
 class ErrorBoundary extends React.Component {
@@ -55,6 +56,7 @@ export default function AppRoutes() {
 							<Route path="/dashboard" element={<Dashboard />} />
 							<Route path="/admin/dashboard" element={<AdminDashboard />} />
 							<Route path="/checkout" element={<Checkout />} />
+							<Route path="/profile" element={<Profile />} />
 						</Route>
 
 						{/* Catch-all -> if user hits unknown route, redirect to root */}
