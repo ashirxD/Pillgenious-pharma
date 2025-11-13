@@ -20,10 +20,15 @@ export const useLogin = () => {
       toast.success('Login successful!');
       
       // Redirect based on user role
-      if (data.user.role === 'admin') {
-        navigate('/admin/dashboard');
-      } else {
-        navigate('/dashboard');
+      switch (data.user.role) {
+        case 'admin':
+          navigate('/admin/dashboard');
+          break;
+        case 'pharmacyUser':
+          navigate('/pharmacy/dashboard');
+          break;
+        default:
+          navigate('/dashboard');
       }
     },
   });
@@ -64,10 +69,14 @@ export const useLogout = () => {
       }
     },
     onSuccess: () => {
+      const currentRole = useAuthStore.getState().user?.role;
+      const redirectPath =
+        currentRole === 'admin' || currentRole === 'pharmacyUser' ? '/admin-login' : '/';
+
       logout();
       queryClient.clear(); // Clear all cached data
       toast.info('Logged out successfully');
-      navigate('/auth/login');
+      navigate(redirectPath);
     },
   });
 };

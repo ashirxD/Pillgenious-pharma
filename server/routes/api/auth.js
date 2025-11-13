@@ -63,6 +63,10 @@ router.post('/login', async (req, res, next) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(401).json({ error: 'Invalid credentials' });
 
+    if (user.isActive === false) {
+      return res.status(403).json({ error: 'Account is blocked. Please contact support.' });
+    }
+
     const ok = await user.comparePassword(password);
     if (!ok) return res.status(401).json({ error: 'Invalid credentials' });
 

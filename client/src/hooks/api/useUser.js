@@ -7,6 +7,8 @@ import { toast } from 'react-toastify';
 export const userKeys = {
   all: ['user'],
   profile: () => [...userKeys.all, 'profile'],
+  list: () => [...userKeys.all, 'list'],
+  detail: (id) => [...userKeys.all, 'detail', id],
 };
 
 /**
@@ -45,6 +47,42 @@ export const useUpdateProfile = () => {
     },
     onError: (error) => {
       const message = error?.response?.data?.error || 'Failed to update profile';
+      toast.error(message);
+    },
+  });
+};
+
+/**
+ * Fetch all users (admin only)
+ */
+export const useAdminUsers = () => {
+  return useQuery({
+    queryKey: userKeys.list(),
+    queryFn: async () => {
+      const { data } = await axiosInstance.get('/user');
+      return data.users || [];
+    },
+    staleTime: 60 * 1000,
+  });
+};
+
+/**
+ * Update user activation status (admin only)
+ */
+export const useUpdateUserStatus = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, isActive }) => {
+      const { data } = await axiosInstance.patch(`/user/${id}/status`, { isActive });
+      return data;
+    },
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: userKeys.list() });
+      toast.success(`User has been ${variables.isActive ? 'activated' : 'blocked'} successfully.`);
+    },
+    onError: (error) => {
+      const message = error?.response?.data?.error || 'Failed to update user status.';
       toast.error(message);
     },
   });

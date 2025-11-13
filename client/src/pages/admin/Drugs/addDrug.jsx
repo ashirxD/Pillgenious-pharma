@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useCreateDrug, useUpdateDrug } from '../../../hooks/api/useDrugs';
 
 const DRUG_TYPES = ['Tablet', 'Capsule', 'Syrup', 'Injection', 'Cream', 'Drops', 'Inhaler', 'Ointment', 'Other'];
@@ -30,6 +30,8 @@ export default function AddDrug({ isOpen, onClose, editingDrug = null }) {
   });
 
   const [sideEffectInput, setSideEffectInput] = useState('');
+  const [imageError, setImageError] = useState('');
+  const fileInputRef = useRef(null);
   const createMutation = useCreateDrug();
   const updateMutation = useUpdateDrug();
 
@@ -51,6 +53,7 @@ export default function AddDrug({ isOpen, onClose, editingDrug = null }) {
         images: editingDrug.images || [],
         isActive: editingDrug.isActive !== undefined ? editingDrug.isActive : true
       });
+      setImageError('');
     } else if (isOpen && !editingDrug) {
       // Reset form for new drug
       setFormData({
@@ -66,6 +69,7 @@ export default function AddDrug({ isOpen, onClose, editingDrug = null }) {
         isActive: true
       });
       setSideEffectInput('');
+      setImageError('');
     }
   }, [isOpen, editingDrug]);
 
@@ -103,6 +107,58 @@ export default function AddDrug({ isOpen, onClose, editingDrug = null }) {
     }));
   };
 
+  const triggerFileSelect = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0];
+
+    if (!file) {
+      setFormData(prev => ({ ...prev, images: [] }));
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      setImageError('Please select a valid image file.');
+       e.target.value = '';
+      return;
+    }
+
+    const maxSizeInMB = 4;
+    if (file.size > maxSizeInMB * 1024 * 1024) {
+      setImageError(`Image must be smaller than ${maxSizeInMB}MB.`);
+      e.target.value = '';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setFormData(prev => ({
+        ...prev,
+        images: reader.result ? [reader.result] : []
+      }));
+      setImageError('');
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveImage = () => {
+    setFormData(prev => ({
+      ...prev,
+      images: []
+    }));
+    setImageError('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
 
@@ -115,7 +171,7 @@ export default function AddDrug({ isOpen, onClose, editingDrug = null }) {
       description: formData.description.trim() || undefined,
       stockQuantity: parseInt(formData.stockQuantity) || 0,
       prescriptionRequired: formData.prescriptionRequired,
-      images: formData.images,
+      images: formData.images?.filter(Boolean) || [],
       isActive: formData.isActive
     };
 
@@ -247,6 +303,70 @@ export default function AddDrug({ isOpen, onClose, editingDrug = null }) {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
                   placeholder="0"
                 />
+              </div>
+            </div>
+
+            {/* Image Upload */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Drug Image
+              </label>
+              <div className="space-y-3">
+                <input
+                  type="file"
+                  accept="image/*"
+                  ref={fileInputRef}
+                  onChange={handleImageChange}
+                  className="hidden"
+                />
+                <div
+                  onClick={triggerFileSelect}
+                  className={`relative flex items-center justify-center rounded-lg border-2 border-dashed ${
+                    formData.images && formData.images.length > 0
+                      ? 'border-transparent bg-white'
+                      : 'border-purple-300 hover:border-purple-400 bg-purple-50/40 hover:bg-purple-50'
+                  } cursor-pointer transition-colors duration-200 min-h-[12rem] overflow-hidden`}
+                >
+                  {formData.images && formData.images.length > 0 ? (
+                    <>
+                      <img
+                        src={formData.images[0]}
+                        alt="Drug preview"
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemoveImage();
+                        }}
+                        className="absolute top-3 right-3 bg-white bg-opacity-90 text-gray-700 rounded-full p-2 shadow hover:text-red-600 transition-colors"
+                        aria-label="Remove image"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center text-center px-6">
+                      <div className="flex items-center justify-center w-16 h-16 rounded-full bg-white text-purple-600 shadow mb-3">
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                      </div>
+                      <p className="text-sm font-semibold text-purple-700">Add image</p>
+                      <p className="mt-1 text-xs text-purple-500">
+                        Click to upload. JPG, PNG or WEBP. Max 4MB.
+                      </p>
+                    </div>
+                  )}
+                </div>
+                {imageError && (
+                  <p className="text-sm text-red-500">
+                    {imageError}
+                  </p>
+                )}
               </div>
             </div>
 

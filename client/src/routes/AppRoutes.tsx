@@ -9,6 +9,7 @@ const AdminLogin = lazy(() => import('../pages/auth/AdminLogin'));
 		
 const Dashboard = lazy(() => import('../pages/Dashboard'));
 const AdminDashboard = lazy(() => import('../pages/admin/Dashboard'));
+const PharmacyDashboard = lazy(() => import('../pages/Pharmacy/Dashboard'));
 const Checkout = lazy(() => import('../pages/Checkout'));
 const Profile = lazy(() => import('../pages/Profile/Index'));
 
@@ -55,6 +56,7 @@ export default function AppRoutes() {
 						<Route element={<ProtectedRoutes />}>
 							<Route path="/dashboard" element={<Dashboard />} />
 							<Route path="/admin/dashboard" element={<AdminDashboard />} />
+							<Route path="/pharmacy/dashboard" element={<PharmacyDashboard />} />
 							<Route path="/checkout" element={<Checkout />} />
 							<Route path="/profile" element={<Profile />} />
 						</Route>

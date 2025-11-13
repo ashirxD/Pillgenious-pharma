@@ -9,6 +9,7 @@ const drugRouter = require('./api/drug');
 const cartRouter = require('./api/cart');
 const orderRouter = require('./api/order');
 const userRouter = require('./api/user');
+const dashboardRouter = require('./api/dashboard');
 
 router.use('/auth', authRouter);
 router.use('/protected', protectedRouter);
@@ -17,5 +18,6 @@ router.use('/drugs', drugRouter);
 router.use('/cart', cartRouter);
 router.use('/orders', orderRouter);
 router.use('/user', userRouter);
+router.use('/dashboard', dashboardRouter);
 
 module.exports = router;

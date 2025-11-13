@@ -32,10 +32,12 @@ const allowedMimeTypes = new Set([
   'image/heif'
 ]);
 
+const MAX_IMAGE_SIZE_BYTES = 4 * 1024 * 1024; // 4MB
+
 const upload = multer({
   storage: imageStorage,
   limits: {
-    fileSize: 8 * 1024 * 1024 // 8MB
+    fileSize: MAX_IMAGE_SIZE_BYTES
   },
   fileFilter: (req, file, cb) => {
     if (allowedMimeTypes.has(file.mimetype)) {
@@ -49,11 +51,65 @@ const upload = multer({
 const escapeRegex = (text = '') =>
   text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
+const normalizeImages = (images) => {
+  if (!images) return [];
+
+  if (typeof images === 'string') {
+    return images ? [images] : [];
+  }
+
+  if (Array.isArray(images)) {
+    return images.filter(Boolean);
+  }
+
+  return [];
+};
+
+const isBase64Image = (value = '') =>
+  typeof value === 'string' && value.startsWith('data:image');
+
+const getBase64Size = (dataUrl = '') => {
+  try {
+    const [, base64 = ''] = dataUrl.split(',');
+    if (!base64) return 0;
+    return Buffer.from(base64, 'base64').length;
+  } catch (err) {
+    return 0;
+  }
+};
+
+const validateImageSizes = (images = []) => {
+  const oversized = images.find(
+    (img) => isBase64Image(img) && getBase64Size(img) > MAX_IMAGE_SIZE_BYTES
+  );
+
+  if (oversized) {
+    const error = new Error('Image size must be 4MB or smaller.');
+    error.statusCode = 400;
+    throw error;
+  }
+};
+
+const handleImageUpload = (req, res, next) => {
+  upload.single('image')(req, res, (err) => {
+    if (err) {
+      if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({ error: 'Image size must be 4MB or smaller.' });
+      }
+      if (err.message && err.message.includes('Unsupported file type')) {
+        return res.status(400).json({ error: err.message });
+      }
+      return next(err);
+    }
+    next();
+  });
+};
+
 /**
  * POST /api/drugs/search-image
  * Upload an image, run OCR and search for matching drugs
  */
-router.post('/search-image', upload.single('image'), async (req, res, next) => {
+router.post('/search-image', handleImageUpload, async (req, res, next) => {
   if (!req.file) {
     return res.status(400).json({ error: 'Image file is required.' });
   }
@@ -115,6 +171,9 @@ router.post('/search-image', upload.single('image'), async (req, res, next) => {
       drugs
     });
   } catch (error) {
+    if (error.statusCode === 400) {
+      return res.status(400).json({ error: error.message });
+    }
     if (error.message && error.message.includes('Unsupported file type')) {
       return res.status(400).json({ error: error.message });
     }
@@ -259,7 +318,11 @@ router.post('/', requireAdmin, async (req, res, next) => {
       description,
       stockQuantity: stockQuantity || 0,
       prescriptionRequired: prescriptionRequired || false,
-      images: images || [],
+      images: (() => {
+        const formattedImages = normalizeImages(images);
+        validateImageSizes(formattedImages);
+        return formattedImages;
+      })(),
       isActive: true
     });
 
@@ -270,6 +333,9 @@ router.post('/', requireAdmin, async (req, res, next) => {
       drug
     });
   } catch (err) {
+    if (err.statusCode === 400) {
+      return res.status(400).json({ error: err.message });
+    }
     if (err.name === 'ValidationError') {
       return res.status(400).json({ error: err.message });
     }
@@ -321,7 +387,11 @@ router.put('/:id', requireAdmin, async (req, res, next) => {
       drug.stockQuantity = stockQuantity;
     }
     if (prescriptionRequired !== undefined) drug.prescriptionRequired = prescriptionRequired;
-    if (images !== undefined) drug.images = images;
+    if (images !== undefined) {
+      const formattedImages = normalizeImages(images);
+      validateImageSizes(formattedImages);
+      drug.images = formattedImages;
+    }
     if (isActive !== undefined) drug.isActive = isActive;
 
     await drug.save();
@@ -331,6 +401,9 @@ router.put('/:id', requireAdmin, async (req, res, next) => {
       drug
     });
   } catch (err) {
+    if (err.statusCode === 400) {
+      return res.status(400).json({ error: err.message });
+    }
     if (err.name === 'CastError') {
       return res.status(404).json({ error: 'Drug not found' });
     }

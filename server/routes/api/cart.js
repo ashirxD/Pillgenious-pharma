@@ -72,7 +72,30 @@ router.post('/add', getServerSession, async (req, res, next) => {
     });
 
     if (existingCartItem) {
-      return res.status(400).json({ error: 'Drug is already in cart' });
+      const updatedQuantity = existingCartItem.quantity + quantity;
+
+      if (drug.stockQuantity < updatedQuantity) {
+        return res.status(400).json({
+          error: 'Insufficient stock',
+          available: drug.stockQuantity,
+          currentQuantity: existingCartItem.quantity
+        });
+      }
+
+      existingCartItem.quantity = updatedQuantity;
+      await existingCartItem.save();
+      await existingCartItem.populate('drug');
+
+      return res.json({
+        message: 'Drug quantity updated in cart successfully',
+        drug: {
+          id: existingCartItem.drug._id,
+          drugName: existingCartItem.drug.drugName,
+          price: existingCartItem.drug.price,
+          type: existingCartItem.drug.type
+        },
+        quantity: existingCartItem.quantity
+      });
     }
 
     if (drug.stockQuantity < quantity) {
