@@ -1,8 +1,128 @@
 const express = require('express');
 const router = express.Router();
+const fs = require('fs');
+const path = require('path');
+const multer = require('multer');
 const Drug = require('../../models/Drug');
 const getServerSession = require('../../middleware/serverSession');
 const requireAdmin = require('../../middleware/adminAuth');
+const { processImageForDrugs } = require('../../utils/searchDrugAi');
+
+const uploadDirectory = path.join(__dirname, '../../uploads/tmp');
+
+const imageStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    fs.mkdir(uploadDirectory, { recursive: true }, (err) => {
+      cb(err, uploadDirectory);
+    });
+  },
+  filename: (req, file, cb) => {
+    const timestamp = Date.now();
+    const randomPart = Math.random().toString(36).slice(2, 8);
+    const ext = path.extname(file.originalname || '') || '.png';
+    cb(null, `${timestamp}-${randomPart}${ext}`);
+  }
+});
+
+const allowedMimeTypes = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/heic',
+  'image/heif'
+]);
+
+const upload = multer({
+  storage: imageStorage,
+  limits: {
+    fileSize: 8 * 1024 * 1024 // 8MB
+  },
+  fileFilter: (req, file, cb) => {
+    if (allowedMimeTypes.has(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Unsupported file type. Please upload a JPG, PNG, or WEBP image.'));
+    }
+  }
+});
+
+const escapeRegex = (text = '') =>
+  text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/**
+ * POST /api/drugs/search-image
+ * Upload an image, run OCR and search for matching drugs
+ */
+router.post('/search-image', upload.single('image'), async (req, res, next) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'Image file is required.' });
+  }
+
+  const imagePath = req.file.path;
+
+  try {
+    const { rawText, keywords } = await processImageForDrugs(imagePath);
+
+    if (!rawText.trim()) {
+      return res.status(200).json({
+        rawText: '',
+        keywords: [],
+        drugs: [],
+        message: 'No readable text detected in the uploaded image.'
+      });
+    }
+
+    let drugs = [];
+
+    if (keywords.length) {
+      const textSearch = keywords.slice(0, 3).join(' ');
+
+      try {
+        drugs = await Drug.find(
+          {
+            isActive: true,
+            $text: { $search: textSearch }
+          },
+          {
+            score: { $meta: 'textScore' }
+          }
+        )
+          .sort({ score: { $meta: 'textScore' }, createdAt: -1 })
+          .limit(20)
+          .lean();
+      } catch (err) {
+        console.error('Text search failed, falling back to regex:', err.message);
+      }
+
+      if (!drugs.length) {
+        const regexes = keywords.map((keyword) => new RegExp(escapeRegex(keyword), 'i'));
+
+        drugs = await Drug.find({
+          isActive: true,
+          $or: [
+            { drugName: { $in: regexes } },
+            { description: { $in: regexes } }
+          ]
+        })
+          .limit(20)
+          .lean();
+      }
+    }
+
+    res.json({
+      rawText,
+      keywords,
+      drugs
+    });
+  } catch (error) {
+    if (error.message && error.message.includes('Unsupported file type')) {
+      return res.status(400).json({ error: error.message });
+    }
+    next(error);
+  } finally {
+    fs.promises.unlink(imagePath).catch(() => {});
+  }
+});
 
 /**
  * GET /api/drugs

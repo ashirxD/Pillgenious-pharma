@@ -1,11 +1,101 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useDrugs } from '../../hooks/api/useDrugs';
 import DrugCards from './DrugCards';
+import SearchDrug from './SearchDrug';
 
 export default function DrugShop() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedType, setSelectedType] = useState('');
+  const [isListening, setIsListening] = useState(false);
+  const [isSpeechSupported, setIsSpeechSupported] = useState(false);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [imageKeywords, setImageKeywords] = useState<string[]>([]);
+  const [imageResetKey, setImageResetKey] = useState<number>(0);
+
+  const recognitionRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const SpeechRecognitionConstructor =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognitionConstructor) {
+      setIsSpeechSupported(false);
+      return;
+    }
+
+    setIsSpeechSupported(true);
+
+    const recognition = new SpeechRecognitionConstructor();
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0]?.transcript;
+      if (transcript) {
+        setSearchQuery(transcript);
+        setVoiceError(null);
+      }
+    };
+
+    recognition.onerror = (event: any) => {
+      if (event.error === 'not-allowed') {
+        setVoiceError('Microphone access was denied. Please enable it in your browser settings.');
+      } else if (event.error !== 'aborted') {
+        setVoiceError('Voice recognition encountered an issue. Please try again.');
+      }
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognitionRef.current = recognition;
+
+    return () => {
+      recognition.onresult = null;
+      recognition.onerror = null;
+      recognition.onend = null;
+      try {
+        recognition.stop();
+      } catch {
+        // Ignore stop errors when recognition was never started.
+      }
+      recognitionRef.current = null;
+    };
+  }, []);
+
+  const toggleVoiceSearch = () => {
+    if (!isSpeechSupported || !recognitionRef.current) {
+      setVoiceError('Voice search is not supported in this browser.');
+      return;
+    }
+
+    const recognition = recognitionRef.current;
+
+    if (isListening) {
+      recognition.stop();
+      setIsListening(false);
+      return;
+    }
+
+    setVoiceError(null);
+    setIsListening(true);
+
+    try {
+      recognition.start();
+    } catch (err) {
+      setIsListening(false);
+      setVoiceError('Unable to start voice recognition. Please try again.');
+      console.error('Speech recognition error:', err);
+    }
+  };
 
   const { data, isLoading, error, refetch } = useDrugs({
     search: searchQuery || undefined,
@@ -23,9 +113,23 @@ export default function DrugShop() {
     setSearchQuery('');
     setSelectedCategory('');
     setSelectedType('');
+    setImageKeywords([]);
+    setImageResetKey((value) => value + 1);
   };
 
-  const hasActiveFilters = searchQuery || selectedCategory || selectedType;
+  const hasActiveFilters =
+    !!(searchQuery || selectedCategory || selectedType || imageKeywords.length);
+
+  const handleImageKeyword = (
+    keyword: string,
+    meta: { keywords: string[]; rawText: string } = { keywords: [], rawText: '' }
+  ) => {
+    setImageKeywords(meta?.keywords || []);
+
+    if (keyword) {
+      setSearchQuery(keyword);
+    }
+  };
 
   const categories = [
     'Pain Relief',
@@ -66,7 +170,7 @@ export default function DrugShop() {
                 id="search"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all"
+                className="w-full pl-10 pr-14 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all"
                 placeholder="Search by drug name..."
               />
               <svg
@@ -77,7 +181,56 @@ export default function DrugShop() {
               >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
+              <button
+                type="button"
+                onClick={toggleVoiceSearch}
+                className={`absolute right-2 top-2 flex items-center justify-center w-9 h-9 rounded-full transition-colors ${
+                  isListening
+                    ? 'bg-teal-100 text-teal-700 ring-2 ring-teal-400'
+                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                }`}
+                aria-label={isListening ? 'Stop voice search' : 'Start voice search'}
+              >
+                <svg
+                  className={`w-5 h-5 ${isListening ? 'animate-pulse' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 1a3 3 0 00-3 3v5a3 3 0 006 0V4a3 3 0 00-3-3zM19 10a7 7 0 01-14 0m7 7v6m-4 0h8"
+                  />
+                </svg>
+              </button>
             </div>
+            {!isSpeechSupported && (
+              <p className="mt-2 text-xs text-red-500">
+                Voice search is not supported in this browser. Please use a compatible browser like Chrome.
+              </p>
+            )}
+            {isSpeechSupported && (
+              <div className="mt-2 flex items-center text-xs text-gray-500">
+                <span
+                  className={`inline-flex items-center gap-1 px-2 py-1 rounded-full ${
+                    isListening ? 'bg-teal-100 text-teal-700' : 'bg-gray-100'
+                  }`}
+                >
+                  <span
+                    className={`w-2 h-2 rounded-full ${
+                      isListening ? 'bg-teal-500 animate-ping' : 'bg-gray-400'
+                    }`}
+                  ></span>
+                  {isListening ? 'Listening...' : 'Tap the mic to search by voice'}
+                </span>
+                {voiceError && <span className="ml-2 text-red-500">{voiceError}</span>}
+              </div>
+            )}
+            {!isSpeechSupported && voiceError && (
+              <p className="mt-1 text-xs text-red-500">{voiceError}</p>
+            )}
           </div>
 
           {/* Category Filter */}
@@ -115,6 +268,10 @@ export default function DrugShop() {
               ))}
             </select>
           </div>
+
+        <div className="mt-6">
+          <SearchDrug onApplyKeyword={handleImageKeyword} resetSignal={imageResetKey} />
+        </div>
         </div>
 
         {/* Clear Filters */}

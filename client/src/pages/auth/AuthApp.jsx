@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { LoginPage } from './Login'
+import LoginPage from './Login'
 import SignupPage from './SignUp'
 
 export default function AuthApp({ initialPage = 'login' }) {
