@@ -1,7 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const Order = require('../../models/Order');
+const User = require('../../models/User');
+const Notification = require('../../models/Notifications');
 const getServerSession = require('../../middleware/serverSession');
+const { emitAdminNotification } = require('../../utils/socket');
+const { notifyAdminsAndPharmacy } = require('../../service/notifcation');
 
 // Initialize Stripe with secret key from environment
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -128,6 +132,35 @@ router.post('/', getServerSession, async (req, res, next) => {
     await order.populate('user', 'name email');
     await order.populate('items.drugId', 'drugName price');
 
+    // Send notification to admins and pharmacy users when a regular user completes payment
+    if (req.user.role === 'user' && order.paymentStatus === 'Paid') {
+      try {
+        // Get drug names from order items
+        const drugNames = order.items.map(item => item.drugName || item.drugId?.drugName).filter(Boolean);
+        const drugNamesText = drugNames.length > 0 
+          ? (drugNames.length === 1 ? drugNames[0] : `${drugNames[0]} and ${drugNames.length - 1} other${drugNames.length > 2 ? 's' : ''}`)
+          : 'drug(s)';
+        
+        const userName = order.user?.name || req.user.name || 'A user';
+        
+        await notifyAdminsAndPharmacy({
+          type: 'payment',
+          message: `${userName} completed the payment for ${drugNamesText}`,
+          payload: {
+            orderId: order._id,
+            userId: order.user?._id || req.user._id,
+            userName: userName,
+            drugNames: drugNames,
+            total: order.total,
+            paymentStatus: order.paymentStatus,
+          },
+        });
+      } catch (notificationError) {
+        console.error('Failed to send payment notification to admins and pharmacy:', notificationError);
+        // Don't fail the order creation if notification fails
+      }
+    }
+
     res.status(201).json(order);
   } catch (err) {
     next(err);
@@ -222,6 +255,35 @@ router.post('/confirm-payment', getServerSession, async (req, res, next) => {
     // Populate user and drug references
     await order.populate('user', 'name email');
     await order.populate('items.drugId', 'drugName price');
+
+    // Send notification to admins and pharmacy users when a regular user completes payment
+    if (req.user.role === 'user' && order.paymentStatus === 'Paid') {
+      try {
+        // Get drug names from order items
+        const drugNames = order.items.map(item => item.drugName || item.drugId?.drugName).filter(Boolean);
+        const drugNamesText = drugNames.length > 0 
+          ? (drugNames.length === 1 ? drugNames[0] : `${drugNames[0]} and ${drugNames.length - 1} other${drugNames.length > 2 ? 's' : ''}`)
+          : 'drug(s)';
+        
+        const userName = order.user?.name || req.user.name || 'A user';
+        
+        await notifyAdminsAndPharmacy({
+          type: 'payment',
+          message: `${userName} completed the payment for ${drugNamesText}`,
+          payload: {
+            orderId: order._id,
+            userId: order.user?._id || req.user._id,
+            userName: userName,
+            drugNames: drugNames,
+            total: order.total,
+            paymentStatus: order.paymentStatus,
+          },
+        });
+      } catch (notificationError) {
+        console.error('Failed to send payment notification to admins and pharmacy:', notificationError);
+        // Don't fail the order creation if notification fails
+      }
+    }
 
     res.status(201).json(order);
   } catch (err) {

@@ -31,6 +31,11 @@ export const useLogin = () => {
           navigate('/dashboard');
       }
     },
+    onError: (error) => {
+      // Extract error message from server response
+      const errorMessage = error?.response?.data?.error || error?.message || 'Login failed. Please try again.';
+      toast.error(errorMessage);
+    },
   });
 };
 

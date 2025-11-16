@@ -97,3 +97,23 @@ export const useSearchDrugs = (searchQuery) => {
   });
 };
 
+// Update drug stock (pharmacy users)
+export const useUpdateStock = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, quantity }) => {
+      const { data } = await axiosInstance.patch(`/drugs/${id}/stock`, { quantity });
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: drugsKeys.detail(variables.id) });
+      queryClient.invalidateQueries({ queryKey: drugsKeys.lists() });
+      toast.success('Stock updated successfully!');
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.error || 'Failed to update stock');
+    },
+  });
+};
+

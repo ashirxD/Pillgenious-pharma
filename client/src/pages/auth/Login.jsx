@@ -81,7 +81,7 @@ export default function LoginPage({ onNavigate }) {
             {loginMutation.isError && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm flex items-center">
                 <span className="w-2 h-2 bg-red-500 rounded-full mr-3"></span>
-                {loginMutation.error?.message || 'Login failed'}
+                {loginMutation.error?.response?.data?.error || loginMutation.error?.message || 'Login failed'}
               </div>
             )}
 

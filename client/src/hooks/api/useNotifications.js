@@ -16,9 +16,21 @@ export const useNotifications = (filters = {}) => {
   return useQuery({
     queryKey: notificationsKeys.list(filters),
     queryFn: async () => {
-      const { data } = await axiosInstance.get('/notifications', { params: filters });
-      return data;
+      try {
+        const { data } = await axiosInstance.get('/notifications', { params: filters });
+        console.log('[Notifications] API Response:', data);
+        const notifications = Array.isArray(data) ? data : [];
+        console.log('[Notifications] Processed notifications:', notifications.length);
+        return notifications;
+      } catch (error) {
+        console.error('[Notifications] Error fetching notifications:', error);
+        console.error('[Notifications] Error details:', error.response?.data || error.message);
+        throw error;
+      }
     },
+    retry: 2,
+    refetchOnWindowFocus: true,
+    staleTime: 0, // Always consider data stale to force refetch
   });
 };
 

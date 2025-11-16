@@ -3,6 +3,7 @@ import PharmacySidebar from '../layout/PharmacySidebar';
 import PharmacyHeader from '../layout/PharmacyHeader';
 import StatsCards from './StatsCards';
 import RecentActivity from './RecentActivity';
+import DrugsManagement from '../DrugsManagement';
 
 export default function PharmacyDashboard() {
   const [currentTab, setCurrentTab] = useState('dashboard');
@@ -17,6 +18,8 @@ export default function PharmacyDashboard() {
             <RecentActivity />
           </div>
         );
+      case 'drugs-management':
+        return <DrugsManagement />;
       case 'inventory':
         return (
           <div className="px-4 md:px-6 lg:px-8 py-6 md:py-8">

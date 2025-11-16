@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import AdminSidebar from '../layout/AdminSidebar';
 import AdminHeader from '../layout/AdminHeader';
 import PharmacyUser from '../PharmacyUser';
@@ -6,10 +6,42 @@ import Drugs from '../Drugs';
 import Users from '../Users';
 import StatsCards from './StatsCards';
 import RecentActivity from './RecentActivity';
+import useAuthStore from '../../../store/useAuthStore';
+import { useQueryClient } from '@tanstack/react-query';
+import { notificationsKeys } from '../../../hooks/api/useNotifications';
+import { initSocket, disconnectSocket } from '../../../utils/socket';
+import { toast } from 'react-toastify';
 
 export default function AdminDashboard() {
   const [currentTab, setCurrentTab] = useState('dashboard');
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
+  const token = useAuthStore((state) => state.token);
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!token) {
+      return;
+    }
+
+    const socket = initSocket(token);
+
+    const handleNotification = (notification) => {
+      queryClient.invalidateQueries({ queryKey: notificationsKeys.all });
+      queryClient.invalidateQueries({ queryKey: notificationsKeys.count() });
+      queryClient.invalidateQueries({ queryKey: notificationsKeys.unread() });
+
+      if (notification?.message) {
+        toast.info(notification.message, { toastId: `notification-${notification.payload?.orderId || Date.now()}` });
+      }
+    };
+
+    socket.on('notification:new', handleNotification);
+
+    return () => {
+      socket.off('notification:new', handleNotification);
+      disconnectSocket();
+    };
+  }, [token, queryClient]);
 
   // Handle profile navigation from header
   const handleProfileNavigation = (page) => {

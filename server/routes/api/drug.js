@@ -7,6 +7,7 @@ const Drug = require('../../models/Drug');
 const getServerSession = require('../../middleware/serverSession');
 const requireAdmin = require('../../middleware/adminAuth');
 const { processImageForDrugs } = require('../../utils/searchDrugAi');
+const { notifyAllUsers } = require('../../service/notifcation');
 
 const uploadDirectory = path.join(__dirname, '../../uploads/tmp');
 
@@ -328,6 +329,23 @@ router.post('/', requireAdmin, async (req, res, next) => {
 
     await drug.save();
 
+    // Send notification to all users about the new drug
+    try {
+      await notifyAllUsers({
+        type: 'system',
+        message: `${drug.drugName} has been added to the pillgenios pharmacy`,
+        payload: {
+          drugId: drug._id,
+          drugName: drug.drugName,
+          category: drug.category,
+          price: drug.price,
+        },
+      });
+    } catch (notificationError) {
+      // Log error but don't fail the drug creation
+      console.error('Failed to send drug creation notification:', notificationError);
+    }
+
     res.status(201).json({
       message: 'Drug created successfully',
       drug
@@ -432,6 +450,72 @@ router.delete('/:id', requireAdmin, async (req, res, next) => {
 
     res.json({
       message: 'Drug deleted successfully'
+    });
+  } catch (err) {
+    if (err.name === 'CastError') {
+      return res.status(404).json({ error: 'Drug not found' });
+    }
+    next(err);
+  }
+});
+
+/**
+ * PATCH /api/drugs/:id/stock
+ * Pharmacy users only - Update drug stock (increase or decrease)
+ * Body: { quantity: number } - positive to increase, negative to decrease
+ */
+router.patch('/:id/stock', getServerSession, async (req, res, next) => {
+  try {
+    const { quantity } = req.body;
+    const drugId = req.params.id;
+
+    // Check if user is pharmacy user or admin
+    if (req.user.role !== 'pharmacyUser' && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Forbidden - Pharmacy user or admin access required' });
+    }
+
+    if (quantity === undefined || quantity === null) {
+      return res.status(400).json({ error: 'Quantity is required' });
+    }
+
+    if (typeof quantity !== 'number') {
+      return res.status(400).json({ error: 'Quantity must be a number' });
+    }
+
+    const drug = await Drug.findById(drugId);
+
+    if (!drug) {
+      return res.status(404).json({ error: 'Drug not found' });
+    }
+
+    // Calculate new stock quantity
+    const newStockQuantity = drug.stockQuantity + quantity;
+
+    // Prevent negative stock
+    if (newStockQuantity < 0) {
+      return res.status(400).json({ 
+        error: 'Insufficient stock to decrease',
+        currentStock: drug.stockQuantity,
+        requestedChange: quantity
+      });
+    }
+
+    // Store previous stock before updating
+    const previousStock = drug.stockQuantity;
+    
+    // Update stock
+    drug.stockQuantity = newStockQuantity;
+    await drug.save();
+
+    res.json({
+      message: 'Stock updated successfully',
+      drug: {
+        id: drug._id,
+        drugName: drug.drugName,
+        previousStock: previousStock,
+        newStock: drug.stockQuantity,
+        change: quantity
+      }
     });
   } catch (err) {
     if (err.name === 'CastError') {
