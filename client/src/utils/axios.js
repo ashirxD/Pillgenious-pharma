@@ -41,9 +41,21 @@ axiosInstance.interceptors.response.use(
       
       switch (status) {
         case 401:
-          // Unauthorized - clear auth and redirect to login
+          // Unauthorized - clear auth and redirect to appropriate login page
+          const currentUser = useAuthStore.getState().user;
+          const currentRole = currentUser?.role;
+          const currentPath = window.location.pathname;
+          
+          // Determine redirect path based on role or current path
+          let redirectPath = '/';
+          if (currentRole === 'admin' || currentRole === 'pharmacyUser') {
+            redirectPath = '/admin-login';
+          } else if (currentPath.startsWith('/admin') || currentPath.startsWith('/pharmacy')) {
+            redirectPath = '/admin-login';
+          }
+          
           useAuthStore.getState().logout();
-          window.location.href = '/auth/login';
+          window.location.href = redirectPath;
           break;
         case 403:
           console.error('Access forbidden:', data.message || 'Forbidden');

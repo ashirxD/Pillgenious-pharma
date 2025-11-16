@@ -74,12 +74,21 @@ export const useLogout = () => {
       }
     },
     onSuccess: () => {
-      const currentRole = useAuthStore.getState().user?.role;
-      const redirectPath =
-        currentRole === 'admin' || currentRole === 'pharmacyUser' ? '/admin-login' : '/';
+      // Get user role BEFORE clearing the auth store
+      const currentUser = useAuthStore.getState().user;
+      const currentRole = currentUser?.role;
+      
+      // Determine redirect path based on role
+      const redirectPath = 
+        currentRole === 'admin' || currentRole === 'pharmacyUser' 
+          ? '/admin-login' 
+          : '/';
 
+      // Clear auth store and query cache
       logout();
       queryClient.clear(); // Clear all cached data
+      
+      // Show toast and navigate
       toast.info('Logged out successfully');
       navigate(redirectPath);
     },
