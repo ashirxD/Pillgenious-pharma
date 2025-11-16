@@ -55,6 +55,11 @@ export const useRegister = () => {
       toast.success('Registration successful!');
       navigate('/dashboard');
     },
+    onError: (error) => {
+      // Extract error message from server response
+      const errorMessage = error?.response?.data?.error || error?.message || 'Registration failed. Please try again.';
+      toast.error(errorMessage);
+    },
   });
 };
 

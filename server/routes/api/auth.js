@@ -18,17 +18,21 @@ router.post('/register', async (req, res, next) => {
     const { name, email, password, role } = req.body;
     if (!email || !password) return res.status(400).json({ error: 'Email and password are required' });
 
-    const exists = await User.findOne({ email });
-    if (exists) return res.status(409).json({ error: 'Email already registered' });
+    const exists = await User.findOne({ email: email.toLowerCase() });
+    if (exists) return res.status(409).json({ error: 'This email is already registered. Please use a different email or try logging in.' });
 
     // Hash password here instead of using a pre-save hook
     const hashed = await hashPassword(password);
-    const user = new User({ name, email, password: hashed, role: role || 'user' });
+    const user = new User({ name, email: email.toLowerCase(), password: hashed, role: role || 'user' });
     await user.save();
 
     const token = signToken(user);
     res.status(201).json({ user: { id: user._id, name: user.name, email: user.email, role: user.role }, token });
   } catch (err) {
+    // Handle MongoDB duplicate key error (E11000)
+    if (err.code === 11000) {
+      return res.status(409).json({ error: 'This email is already registered. Please use a different email or try logging in.' });
+    }
     next(err);
   }
 });

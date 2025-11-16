@@ -110,7 +110,7 @@ export default function SignupPage({ onNavigate }) {
             {registerMutation.isError && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm flex items-center">
                 <span className="w-2 h-2 bg-red-500 rounded-full mr-3"></span>
-                {registerMutation.error.message}
+                {registerMutation.error?.response?.data?.error || registerMutation.error?.message || 'Registration failed. Please try again.'}
               </div>
             )}
 
